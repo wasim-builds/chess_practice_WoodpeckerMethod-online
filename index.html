@@ -1,0 +1,2094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Woodpecker Method Chess Trainer</title>
+    <style>
+        :root {
+            /* Light Theme (Default) */
+            --bg-main: #f8fafc;
+            --bg-panel: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --board-light-brown: #f0d9b5;
+            --board-dark-brown: #b58863;
+            --board-light-green: #eeeed2;
+            --board-dark-green: #769656;
+            
+            --board-light: var(--board-light-brown);
+            --board-dark: var(--board-dark-brown);
+            --highlight-last: rgba(255, 255, 0, 0.4);
+            --highlight-legal: rgba(0, 0, 0, 0.2);
+            --highlight-correct: rgba(34, 197, 94, 0.6);
+            --highlight-wrong: rgba(239, 68, 68, 0.6);
+        }
+
+        [data-theme="dark"] {
+            --bg-main: #0f172a;
+            --bg-panel: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --board-light-brown: #f0d9b5; /* keep board colors same or slightly muted */
+            --board-dark-brown: #b58863;
+            --board-light-green: #eeeed2;
+            --board-dark-green: #769656;
+            --highlight-legal: rgba(255, 255, 255, 0.3);
+        }
+
+        [data-board-color="green"] {
+            --board-light: var(--board-light-green);
+            --board-dark: var(--board-dark-green);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            transition: background-color 0.3s, color 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            width: 100%;
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        header {
+            width: 100%;
+            max-width: 1000px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0 20px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        select, button, input {
+            background: var(--bg-panel);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: var(--border-color);
+        }
+
+        button.primary {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        button.primary:hover {
+            background: var(--primary-hover);
+        }
+        
+        button.success {
+            background: var(--success);
+            color: white;
+            border-color: var(--success);
+        }
+
+        input[type="number"] {
+            width: 70px;
+        }
+
+        /* Chessboard Styles */
+        .board-container {
+            width: 480px;
+            max-width: 100vw;
+            position: relative;
+            user-select: none;
+            display: flex;
+        }
+        
+        .ranks-container, .files-container {
+            display: flex;
+            justify-content: space-around;
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .ranks-container {
+            flex-direction: column;
+            padding-right: 8px;
+            height: 480px;
+        }
+        
+        .files-container {
+            width: 480px;
+            padding-top: 8px;
+            padding-left: 20px; /* Align with board */
+        }
+        
+        .board-wrapper {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .board {
+            width: 480px;
+            height: 480px;
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            border: 2px solid var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .square {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 50px;
+            cursor: grab;
+            transition: background-color 0.1s;
+        }
+
+        .square:active {
+            cursor: grabbing;
+        }
+
+        .square.light { background-color: var(--board-light); }
+        .square.dark { background-color: var(--board-dark); }
+
+        .square.highlight-last { background-color: var(--highlight-last) !important; }
+        .square.highlight-correct { background-color: var(--highlight-correct) !important; }
+        .square.highlight-wrong { background-color: var(--highlight-wrong) !important; }
+
+        .square.legal-move::after {
+            content: '';
+            position: absolute;
+            width: 25%;
+            height: 25%;
+            background-color: var(--highlight-legal);
+            border-radius: 50%;
+        }
+
+        .square.legal-move.capture::after {
+            width: 80%;
+            height: 80%;
+            background-color: transparent;
+            border: 5px solid var(--highlight-legal);
+        }
+
+        
+        .piece {
+            position: absolute;
+            width: 12.5%;
+            height: 12.5%;
+            background-size: cover;
+            z-index: 10;
+            transition: transform 0.2s ease;
+            cursor: pointer;
+            -webkit-user-drag: none;
+        }
+        
+.piece.wk { background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NSA0NSI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2U9IiMwMDAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLXdpZHRoPSIxLjUiPjxwYXRoIHN0cm9rZS1saW5lam9pbj0ibWl0ZXIiIGQ9Ik0yMi41IDExLjYzVjZNMjAgOGg1Ii8+PHBhdGggZmlsbD0iI2ZmZiIgc3Ryb2tlLWxpbmVjYXA9ImJ1dHQiIHN0cm9rZS1saW5lam9pbj0ibWl0ZXIiIGQ9Ik0yMi41IDI1czQuNS03LjUgMy0xMC41YzAgMC0xLTIuNS0zLTIuNXMtMyAyLjUtMyAyLjVjLTEuNSAzIDMgMTAuNSAzIDEwLjUiLz48cGF0aCBmaWxsPSIjZmZmIiBkPSJNMTEuNSAzN2M1LjUgMy41IDE1LjUgMy41IDIxIDB2LTdzOS00LjUgNi0xMC41Yy00LTYuNS0xMy41LTMuNS0xNiA0VjI3di0zLjVjLTMuNS03LjUtMTMtMTAuNS0xNi00LTMgNiA1IDEwIDUgMTB6Ii8+PHBhdGggZD0iTTExLjUgMzBjNS41LTMgMTUuNS0zIDIxIDBtLTIxIDMuNWM1LjUtMyAxNS41LTMgMjEgMG0tMjEgMy41YzUuNS0zIDE1LjUtMyAyMSAwIi8+PC9nPjwvc3ZnPg=='); }
+.piece.wq { background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NSA0NSI+PGcgZmlsbD0iI2ZmZiIgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2U9IiMwMDAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLXdpZHRoPSIxLjUiPjxwYXRoIGQ9Ik04IDEyYTIgMiAwIDEgMS00IDAgMiAyIDAgMSAxIDQgMG0xNi41LTQuNWEyIDIgMCAxIDEtNCAwIDIgMiAwIDEgMSA0IDBNNDEgMTJhMiAyIDAgMSAxLTQgMCAyIDIgMCAxIDEgNCAwTTE2IDguNWEyIDIgMCAxIDEtNCAwIDIgMiAwIDEgMSA0IDBNMzMgOWEyIDIgMCAxIDEtNCAwIDIgMiAwIDEgMSA0IDAiLz48cGF0aCBzdHJva2UtbGluZWNhcD0iYnV0dCIgZD0iTTkgMjZjOC41LTEuNSAyMS0xLjUgMjcgMGwyLTEyLTcgMTFWMTFsLTUuNSAxMy41LTMtMTUtMyAxNS01LjUtMTRWMjVMNyAxNHoiLz48cGF0aCBzdHJva2UtbGluZWNhcD0iYnV0dCIgZD0iTTkgMjZjMCAyIDEuNSAyIDIuNSA0IDEgMS41IDEgMSAuNSAzLjUtMS41IDEtMS41IDIuNS0xLjUgMi41LTEuNSAxLjUuNSAyLjUuNSAyLjUgNi41IDEgMTYuNSAxIDIzIDAgMCAwIDEuNS0xIDAtMi41IDAgMCAuNS0xLjUtMS0yLjUtLjUtMi41LS41LTIgLjUtMy41IDEtMiAyLjUtMiAyLjUtNC04LjUtMS41LTE4LjUtMS41LTI3IDB6Ii8+PHBhdGggZmlsbD0ibm9uZSIgZD0iTTExLjUgMzBjMy41LTEgMTguNS0xIDIyIDBNMTIgMzMuNWM2LTEgMTUtMSAyMSAwIi8+PC9nPjwvc3ZnPg=='); }
+.piece.wr { background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NSA0NSI+PGcgZmlsbD0iI2ZmZiIgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2U9IiMwMDAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLXdpZHRoPSIxLjUiPjxwYXRoIHN0cm9rZS1saW5lY2FwPSJidXR0IiBkPSJNOSAzOWgyN3YtM0g5em0zLTN2LTRoMjF2NHptLTEtMjJWOWg0djJoNVY5aDV2Mmg1VjloNHY1Ii8+PHBhdGggZD0ibTM0IDE0LTMgM0gxNGwtMy0zIi8+PHBhdGggc3Ryb2tlLWxpbmVjYXA9ImJ1dHQiIHN0cm9rZS1saW5lam9pbj0ibWl0ZXIiIGQ9Ik0zMSAxN3YxMi41SDE0VjE3Ii8+PHBhdGggZD0ibTMxIDI5LjUgMS41IDIuNWgtMjBsMS41LTIuNSIvPjxwYXRoIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lam9pbj0ibWl0ZXIiIGQ9Ik0xMSAxNGgyMyIvPjwvZz48L3N2Zz4='); }
+.piece.wb { background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NSA0NSI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2U9IiMwMDAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLXdpZHRoPSIxLjUiPjxnIGZpbGw9IiNmZmYiIHN0cm9rZS1saW5lY2FwPSJidXR0Ij48cGF0aCBkPSJNOSAzNmMzLjM5LS45NyAxMC4xMS40MyAxMy41LTIgMy4zOSAyLjQzIDEwLjExIDEuMDMgMTMuNSAyIDAgMCAxLjY1LjU0IDMgMi0uNjguOTctMS42NS45OS0zIC41LTMuMzktLjk3LTEwLjExLjQ2LTEzLjUtMS0zLjM5IDEuNDYtMTAuMTEuMDMtMTMuNSAxLTEuMzUuNDktMi4zMi40Ny0zLS41IDEuMzUtMS45NCAzLTIgMy0yeiIvPjxwYXRoIGQ9Ik0xNSAzMmMyLjUgMi41IDEyLjUgMi41IDE1IDAgLjUtMS41IDAtMiAwLTIgMC0yLjUtMi41LTQtMi41LTQgNS41LTEuNSA2LTExLjUtNS0xNS41LTExIDQtMTAuNSAxNC01IDE1LjUgMCAwLTIuNSAxLjUtMi41IDQgMCAwLS41LjUgMCAyeiIvPjxwYXRoIGQ9Ik0yNSA4YTIuNSAyLjUgMCAxIDEtNSAwIDIuNSAyLjUgMCAxIDEgNSAweiIvPjwvZz48cGF0aCBzdHJva2UtbGluZWpvaW49Im1pdGVyIiBkPSJNMTcuNSAyNmgxME0xNSAzMGgxNW0tNy41LTE0LjV2NU0yMCAxOGg1Ii8+PC9nPjwvc3ZnPg=='); }
+.piece.wn { background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NSA0NSI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2U9IiMwMDAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLXdpZHRoPSIxLjUiPjxwYXRoIGZpbGw9IiNmZmYiIGQ9Ik0yMiAxMGMxMC41IDEgMTYuNSA4IDE2IDI5SDE1YzAtOSAxMC02LjUgOC0yMSIvPjxwYXRoIGZpbGw9IiNmZmYiIGQ9Ik0yNCAxOGMuMzggMi45MS01LjU1IDcuMzctOCA5LTMgMi0yLjgyIDQuMzQtNSA0LTEuMDQyLS45NCAxLjQxLTMuMDQgMC0zLTEgMCAuMTkgMS4yMy0xIDItMSAwLTQuMDAzIDEtNC00IDAtMiA2LTEyIDYtMTJzMS44OS0xLjkgMi0zLjVjLS43My0uOTk0LS41LTItLjUtMyAxLTEgMyAyLjUgMyAyLjVoMnMuNzgtMS45OTIgMi41LTNjMSAwIDEgMyAxIDMiLz48cGF0aCBmaWxsPSIjMDAwIiBkPSJNOS41IDI1LjVhLjUuNSAwIDEgMS0xIDAgLjUuNSAwIDEgMSAxIDBtNS40MzMtOS43NWEuNSAxLjUgMzAgMSAxLS44NjYtLjUuNSAxLjUgMzAgMSAxIC44NjYuNSIvPjwvZz48L3N2Zz4='); }
+.piece.wp { background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NSA0NSI+PHBhdGggZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjMDAwIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS13aWR0aD0iMS41IiBkPSJNMjIuNSA5Yy0yLjIxIDAtNCAxLjc5LTQgNCAwIC44OS4yOSAxLjcxLjc4IDIuMzhDMTcuMzMgMTYuNSAxNiAxOC41OSAxNiAyMWMwIDIuMDMuOTQgMy44NCAyLjQxIDUuMDMtMyAxLjA2LTcuNDEgNS41NS03LjQxIDEzLjQ3aDIzYzAtNy45Mi00LjQxLTEyLjQxLTcuNDEtMTMuNDcgMS40Ny0xLjE5IDIuNDEtMyAyLjQxLTUuMDMgMC0yLjQxLTEuMzMtNC41LTMuMjgtNS42Mi40OS0uNjcuNzgtMS40OS43OC0yLjM4IDAtMi4yMS0xLjc5LTQtNC00eiIvPjwvc3ZnPg=='); }
+.piece.bk { background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NSA0NSI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2U9IiMwMDAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLXdpZHRoPSIxLjUiPjxwYXRoIHN0cm9rZS1saW5lam9pbj0ibWl0ZXIiIGQ9Ik0yMi41IDExLjZWNiIvPjxwYXRoIGZpbGw9IiMwMDAiIHN0cm9rZS1saW5lY2FwPSJidXR0IiBzdHJva2UtbGluZWpvaW49Im1pdGVyIiBkPSJNMjIuNSAyNXM0LjUtNy41IDMtMTAuNWMwIDAtMS0yLjUtMy0yLjVzLTMgMi41LTMgMi41Yy0xLjUgMyAzIDEwLjUgMyAxMC41Ii8+PHBhdGggZmlsbD0iIzAwMCIgZD0iTTExLjUgMzdhMjIuMyAyMi4zIDAgMCAwIDIxIDB2LTdzOS00LjUgNi0xMC41Yy00LTYuNS0xMy41LTMuNS0xNiA0VjI3di0zLjVjLTMuNS03LjUtMTMtMTAuNS0xNi00LTMgNiA1IDEwIDUgMTB6Ii8+PHBhdGggc3Ryb2tlLWxpbmVqb2luPSJtaXRlciIgZD0iTTIwIDhoNSIvPjxwYXRoIHN0cm9rZT0iI2VjZWNlYyIgZD0iTTMyIDI5LjVzOC41LTQgNi05LjdDMzQuMSAxNCAyNSAxOCAyMi41IDI0LjZ2Mi4xLTIuMUMyMCAxOCA5LjkgMTQgNyAxOS45Yy0yLjUgNS42IDQuOCA5IDQuOCA5Ii8+PHBhdGggc3Ryb2tlPSIjZWNlY2VjIiBkPSJNMTEuNSAzMGM1LjUtMyAxNS41LTMgMjEgMG0tMjEgMy41YzUuNS0zIDE1LjUtMyAyMSAwbS0yMSAzLjVjNS41LTMgMTUuNS0zIDIxIDAiLz48L2c+PC9zdmc+'); }
+.piece.bq { background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NSA0NSI+PGcgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2U9IiMwMDAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLXdpZHRoPSIxLjUiPjxnIHN0cm9rZT0ibm9uZSI+PGNpcmNsZSBjeD0iNiIgY3k9IjEyIiByPSIyLjc1Ii8+PGNpcmNsZSBjeD0iMTQiIGN5PSI5IiByPSIyLjc1Ii8+PGNpcmNsZSBjeD0iMjIuNSIgY3k9IjgiIHI9IjIuNzUiLz48Y2lyY2xlIGN4PSIzMSIgY3k9IjkiIHI9IjIuNzUiLz48Y2lyY2xlIGN4PSIzOSIgY3k9IjEyIiByPSIyLjc1Ii8+PC9nPjxwYXRoIHN0cm9rZS1saW5lY2FwPSJidXR0IiBkPSJNOSAyNmM4LjUtMS41IDIxLTEuNSAyNyAwbDIuNS0xMi41TDMxIDI1bC0uMy0xNC4xLTUuMiAxMy42LTMtMTQuNS0zIDE0LjUtNS4yLTEzLjZMMTQgMjUgNi41IDEzLjV6Ii8+PHBhdGggc3Ryb2tlLWxpbmVjYXA9ImJ1dHQiIGQ9Ik05IDI2YzAgMiAxLjUgMiAyLjUgNCAxIDEuNSAxIDEgLjUgMy41LTEuNSAxLTEuNSAyLjUtMS41IDIuNS0xLjUgMS41LjUgMi41LjUgMi41IDYuNSAxIDE2LjUgMSAyMyAwIDAgMCAxLjUtMSAwLTIuNSAwIDAgLjUtMS41LTEtMi41LS41LTIuNS0uNS0yIC41LTMuNSAxLTIgMi41LTIgMi41LTQtOC41LTEuNS0xOC41LTEuNS0yNyAweiIvPjxwYXRoIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJidXR0IiBkPSJNMTEgMzguNWEzNSAzNSAxIDAgMCAyMyAwIi8+PHBhdGggZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZWNlY2VjIiBkPSJNMTEgMjlhMzUgMzUgMSAwIDEgMjMgMG0tMjEuNSAyLjVoMjBtLTIxIDNhMzUgMzUgMSAwIDAgMjIgMG0tMjMgM2EzNSAzNSAxIDAgMCAyNCAwIi8+PC9nPjwvc3ZnPg=='); }
+.piece.br { background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NSA0NSI+PGcgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2U9IiMwMDAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLXdpZHRoPSIxLjUiPjxwYXRoIHN0cm9rZS1saW5lY2FwPSJidXR0IiBkPSJNOSAzOWgyN3YtM0g5em0zLjUtNyAxLjUtMi41aDE3bDEuNSAyLjV6bS0uNSA0di00aDIxdjR6Ii8+PHBhdGggc3Ryb2tlLWxpbmVjYXA9ImJ1dHQiIHN0cm9rZS1saW5lam9pbj0ibWl0ZXIiIGQ9Ik0xNCAyOS41di0xM2gxN3YxM3oiLz48cGF0aCBzdHJva2UtbGluZWNhcD0iYnV0dCIgZD0iTTE0IDE2LjUgMTEgMTRoMjNsLTMgMi41ek0xMSAxNFY5aDR2Mmg1VjloNXYyaDVWOWg0djV6Ii8+PHBhdGggZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZWNlY2VjIiBzdHJva2UtbGluZWpvaW49Im1pdGVyIiBzdHJva2Utd2lkdGg9IjEiIGQ9Ik0xMiAzNS41aDIxbS0yMC00aDE5bS0xOC0yaDE3bS0xNy0xM2gxN00xMSAxNGgyMyIvPjwvZz48L3N2Zz4='); }
+.piece.bb { background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NSA0NSI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2U9IiMwMDAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLXdpZHRoPSIxLjUiPjxnIGZpbGw9IiMwMDAiIHN0cm9rZS1saW5lY2FwPSJidXR0Ij48cGF0aCBkPSJNOSAzNmMzLjQtMSAxMC4xLjQgMTMuNS0yIDMuNCAyLjQgMTAuMSAxIDEzLjUgMiAwIDAgMS42LjUgMyAyLS43IDEtMS42IDEtMyAuNS0zLjQtMS0xMC4xLjUtMTMuNS0xLTMuNCAxLjUtMTAuMSAwLTEzLjUgMS0xLjQuNS0yLjMuNS0zLS41IDEuNC0yIDMtMiAzLTJ6Ii8+PHBhdGggZD0iTTE1IDMyYzIuNSAyLjUgMTIuNSAyLjUgMTUgMCAuNS0xLjUgMC0yIDAtMiAwLTIuNS0yLjUtNC0yLjUtNCA1LjUtMS41IDYtMTEuNS01LTE1LjUtMTEgNC0xMC41IDE0LTUgMTUuNSAwIDAtMi41IDEuNS0yLjUgNCAwIDAtLjUuNSAwIDJ6Ii8+PHBhdGggZD0iTTI1IDhhMi41IDIuNSAwIDEgMS01IDAgMi41IDIuNSAwIDEgMSA1IDB6Ii8+PC9nPjxwYXRoIHN0cm9rZT0iI2VjZWNlYyIgc3Ryb2tlLWxpbmVqb2luPSJtaXRlciIgZD0iTTE3LjUgMjZoMTBNMTUgMzBoMTVtLTcuNS0xNC41djVNMjAgMThoNSIvPjwvZz48L3N2Zz4='); }
+.piece.bn { background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NSA0NSI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2U9IiMwMDAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLXdpZHRoPSIxLjUiPjxwYXRoIGZpbGw9IiMwMDAiIGQ9Ik0yMiAxMGMxMC41IDEgMTYuNSA4IDE2IDI5SDE1YzAtOSAxMC02LjUgOC0yMSIvPjxwYXRoIGZpbGw9IiMwMDAiIGQ9Ik0yNCAxOGMuMzggMi45MS01LjU1IDcuMzctOCA5LTMgMi0yLjgyIDQuMzQtNSA0LTEuMDQtLjk0IDEuNDEtMy4wNCAwLTMtMSAwIC4xOSAxLjIzLTEgMi0xIDAtNCAxLTQtNCAwLTIgNi0xMiA2LTEyczEuODktMS45IDItMy41Yy0uNzMtMS0uNS0yLS41LTMgMS0xIDMgMi41IDMgMi41aDJzLjc4LTIgMi41LTNjMSAwIDEgMyAxIDMiLz48cGF0aCBmaWxsPSIjZWNlY2VjIiBzdHJva2U9IiNlY2VjZWMiIGQ9Ik05LjUgMjUuNWEuNS41IDAgMSAxLTEgMCAuNS41IDAgMSAxIDEgMG01LjQzLTkuNzVhLjUgMS41IDMwIDEgMS0uODYtLjUuNSAxLjUgMzAgMSAxIC44Ni41Ii8+PHBhdGggZmlsbD0iI2VjZWNlYyIgc3Ryb2tlPSJub25lIiBkPSJtMjQuNTUgMTAuNC0uNDUgMS40NS41LjE1YzMuMTUgMSA1LjY1IDIuNDkgNy45IDYuNzVTMzUuNzUgMjkuMDYgMzUuMjUgMzlsLS4wNS41aDIuMjVsLjA1LS41Yy41LTEwLjA2LS44OC0xNi44NS0zLjI1LTIxLjM0cy01Ljc5LTYuNjQtOS4xOS03LjE2eiIvPjwvZz48L3N2Zz4='); }
+.piece.bp { background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NSA0NSI+PHBhdGggc3Ryb2tlPSIjMDAwIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS13aWR0aD0iMS41IiBkPSJNMjIuNSA5YTQgNCAwIDAgMC0zLjIyIDYuMzggNi40OCA2LjQ4IDAgMCAwLS44NyAxMC42NWMtMyAxLjA2LTcuNDEgNS41NS03LjQxIDEzLjQ3aDIzYzAtNy45Mi00LjQxLTEyLjQxLTcuNDEtMTMuNDdhNi40NiA2LjQ2IDAgMCAwLS44Ny0xMC42NUE0LjAxIDQuMDEgMCAwIDAgMjIuNSA5eiIvPjwvc3ZnPg=='); }
+
+
+        
+        /* Panel Styles */
+        .panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        }
+
+        .puzzle-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .turn-indicator {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            display: inline-block;
+        }
+        .turn-indicator.white { background: #fff; color: #000; border: 1px solid #ccc; }
+        .turn-indicator.black { background: #000; color: #fff; }
+
+        .status-message {
+            font-size: 18px;
+            font-weight: 500;
+            text-align: center;
+            padding: 10px;
+            border-radius: 6px;
+            min-height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .status-message.correct { background: rgba(34, 197, 94, 0.1); color: var(--success); }
+        .status-message.wrong { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+        .status-message.info { background: rgba(37, 99, 235, 0.1); color: var(--primary); }
+
+        .timers {
+            display: flex;
+            justify-content: space-between;
+            font-size: 16px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .timer-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .timer-label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .nav-buttons button {
+            flex: 1;
+        }
+
+        /* Bottom Section */
+        .bottom-section {
+            width: 100%;
+            max-width: 1000px;
+            margin-top: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .progress-container {
+            width: 100%;
+        }
+
+        .progress-bar-bg {
+            width: 100%;
+            height: 12px;
+            background: var(--border-color);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: var(--success);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-top: 5px;
+        }
+
+        .import-section textarea {
+            width: 100%;
+            height: 100px;
+            background: var(--bg-main);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 10px;
+            font-family: monospace;
+            resize: vertical;
+        }
+
+        .hidden { display: none !important; }
+
+        @media (max-width: 800px) {
+            .container {
+                grid-template-columns: 1fr;
+                justify-items: center;
+            }
+            .board-container {
+                margin: 0 auto;
+            }
+            .panel {
+                width: 100%;
+                max-width: 480px;
+            }
+        }
+        @media (max-width: 520px) {
+            .board {
+                width: 320px;
+                height: 320px;
+            }
+            .board-container {
+                width: 320px;
+            }
+            .ranks-container {
+                height: 320px;
+            }
+            .files-container {
+                width: 320px;
+            }
+            .square {
+                font-size: 35px;
+            }
+        }
+
+        /* Sidebar / top controls bar */
+        .sidebar {
+            width: 100%;
+            max-width: 1000px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0 14px 0;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 0;
+        }
+        .sidebar h2 {
+            font-size: 18px;
+            font-weight: 700;
+            margin-right: 8px;
+        }
+        .setting-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .setting-group label {
+            font-size: 13px;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+        .setting-group select {
+            min-width: 220px;
+            max-width: 320px;
+        }
+
+        /* Move History Panel */
+        .move-history {
+            font-family: 'Roboto Mono', 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 150px;
+            overflow-y: auto;
+            background: var(--bg-main);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px 10px;
+            line-height: 1.7;
+        }
+        .move-history:empty::before {
+            content: 'No moves yet';
+            color: var(--text-muted);
+            font-style: italic;
+        }
+        .move-pair { display: flex; gap: 4px; align-items: baseline; }
+        .move-num { color: var(--text-muted); min-width: 26px; font-size: 11px; }
+        .move-w { min-width: 58px; font-weight: 600; }
+        .move-b { color: var(--text-muted); }
+        .move-history .last-w .move-w,
+        .move-history .last-b .move-b { color: var(--primary); }
+
+        /* Home View Styles */
+        #home-view {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            width: 100vw;
+            background: linear-gradient(135deg, #121212 0%, #1e1e2f 100%);
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 100;
+            transition: opacity 0.4s ease;
+        }
+
+        .home-title {
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 40px;
+            background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0px 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .mode-cards {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 30px;
+            width: 300px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .glass-card h2 {
+            margin-bottom: 15px;
+            font-size: 24px;
+            color: #fff;
+        }
+
+        .glass-card p {
+            color: #aaa;
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .elo-slider-container {
+            margin-top: 15px;
+            text-align: left;
+            padding: 10px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+        }
+
+        .elo-slider-container label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: #ccc;
+            margin-bottom: 5px;
+        }
+
+        input[type=range] {
+            width: 100%;
+            accent-color: #4facfe;
+        }
+
+        #back-home-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 50;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            padding: 8px 16px;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            transition: background 0.2s;
+        }
+        #back-home-btn:hover { background: rgba(255,255,255,0.2); }
+
+        .hidden-view {
+            display: none !important;
+            opacity: 0;
+            pointer-events: none;
+        }
+    </style>
+    <script src="data/books_list.js"></script>
+</head>
+<body>
+    
+    <!-- HOME VIEW -->
+    <div id="home-view">
+        <div class="home-title">Woodpecker Chess</div>
+        <div class="mode-cards">
+            
+            <div class="glass-card" id="mode-trainer">
+                <h2>🧩 Training Mode</h2>
+                <p>Follow the Woodpecker method, track your cycle times, and build pattern recognition.</p>
+                <div style="font-size:40px; margin-top:20px;">📚</div>
+            </div>
+
+            <div class="glass-card" id="mode-practice">
+                <h2>🤖 Play vs Computer</h2>
+                <p>Play a standard game from the starting position against Stockfish.</p>
+                <div class="elo-slider-container" onclick="event.stopPropagation()">
+                    <label>
+                        <span>Difficulty</span>
+                        <span id="elo-display">Elo 1500</span>
+                    </label>
+                    <input type="range" id="elo-slider" min="1" max="20" value="10">
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- TRAINER/GAME VIEW -->
+    <button id="back-home-btn" class="hidden-view">🏠 Home</button>
+    <div id="trainer-view" class="hidden-view">
+    <div class="sidebar">
+        <h2>Woodpecker Trainer</h2>
+        
+        <div class="setting-group">
+            <label for="book-select">Select Book:</label>
+            <select id="book-select" style="width:100%; padding:5px; margin-top:5px; background:var(--bg-panel); color:var(--text-color); border:1px solid #555; border-radius:4px;"></select>
+        </div>
+        <div class="controls-row">
+            <select id="board-color-select">
+                <option value="brown">Brown Board</option>
+                <option value="green">Green Board</option>
+            </select>
+            <button id="theme-toggle">🌙 Dark Mode</button>
+        </div>
+    </div>
+
+    <header>
+        <h1>Woodpecker Method</h1>
+    </header>
+
+    <div class="container">
+        <div class="board-wrapper">
+            <div class="board-container">
+                <div class="ranks-container" id="ranks">
+                    <span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span>
+                </div>
+                <div class="board" id="board">
+                    <!-- Squares generated by JS -->
+                </div>
+            </div>
+            <div class="files-container" id="files">
+                <span>a</span><span>b</span><span>c</span><span>d</span><span>e</span><span>f</span><span>g</span><span>h</span>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="puzzle-header">
+                <span id="puzzle-number">Puzzle 1 / 1024</span>
+                <span id="turn-indicator" class="turn-indicator white">White to move</span>
+            </div>
+            <div style="text-align:center; font-size:12px; color:var(--text-muted); margin-bottom:4px;">
+                <span id="puzzle-category" style="font-style:italic;"></span>
+                &nbsp;<span id="book-mode-badge" style="background:var(--primary-color); color:white; border-radius:4px; padding:1px 6px; font-size:11px; font-style:normal;"></span>
+            </div>
+
+            <div class="timers">
+                <div class="timer-box">
+                    <span class="timer-label">Puzzle Time</span>
+                    <span id="puzzle-timer">00:00.0</span>
+                </div>
+                <div class="timer-box">
+                    <span class="timer-label">Cycle Time</span>
+                    <span id="session-timer">00:00:00</span>
+                </div>
+            </div>
+
+            <div id="status-message" class="status-message">
+                Ready to play
+            </div>
+
+            <div id="move-history" class="move-history"></div>
+
+            <div class="controls-row" style="justify-content: space-between;">
+                <span style="font-size: 14px; font-weight: bold;">Cycle: <span id="current-cycle">1</span></span>
+                <button id="resume-btn" class="primary">Resume Unsolved</button>
+            </div>
+            
+            <div class="controls-row" style="margin-top: 10px;">
+                <input type="number" id="jump-input" placeholder="No." min="1">
+                <button id="jump-btn">Jump</button>
+            </div>
+            
+            <div class="controls-row" style="margin-top: 10px; justify-content: flex-start; gap: 10px;">
+                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 13px;">
+                    <input type="checkbox" id="engine-toggle">
+                    Play vs Engine (Stockfish)
+                </label>
+                <div id="engine-status" style="font-size: 11px; color: var(--text-muted);"></div>
+            </div>
+
+            <div class="nav-buttons">
+                <button id="prev-btn">← Prev</button>
+                <button id="show-solution-btn">Show Solution</button>
+                <button id="autoplay-btn" title="Toggle Auto-Play" class="primary">Auto-Play ⏵</button>
+                <button id="flip-btn" title="Flip Board">⇅ Flip</button>
+                <button id="next-btn">Next →</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-section">
+        <div class="progress-container">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 14px;">
+                <span style="font-weight: bold;">Cycle Progress</span>
+                <span id="progress-text">0 / 1024</span>
+            </div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="progress-fill"></div>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="timer-label">Solved (No Hints)</div>
+                <div class="stat-value" id="stat-solved" style="color: var(--success);">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="timer-label">Solved (Hint)</div>
+                <div class="stat-value" id="stat-hints" style="color: var(--warning);">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="timer-label">Failed</div>
+                <div class="stat-value" id="stat-failed" style="color: var(--danger);">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="timer-label">Previous Cycle Time</div>
+                <div class="stat-value" id="stat-prev-time" style="color: var(--text-main); font-size: 18px;">N/A</div>
+            </div>
+        </div>
+        
+        <div class="controls-row" style="justify-content: center; margin-bottom: 20px;">
+            <button id="new-cycle-btn" class="success hidden">Start Next Cycle</button>
+            <button id="reset-all-btn" style="color: var(--danger); border-color: var(--danger);">Reset All Progress</button>
+        </div>
+
+    </div>
+    </div> <!-- END trainer-view -->
+
+    <script>
+        // ==========================================
+        // 1. PURE JS CHESS ENGINE
+        // ==========================================
+        class ChessEngine {
+            constructor() {
+                this.reset();
+                this.pieceMap = {
+                    'P': { type: 'p', color: 'w' }, 'N': { type: 'n', color: 'w' },
+                    'B': { type: 'b', color: 'w' }, 'R': { type: 'r', color: 'w' },
+                    'Q': { type: 'q', color: 'w' }, 'K': { type: 'k', color: 'w' },
+                    'p': { type: 'p', color: 'b' }, 'n': { type: 'n', color: 'b' },
+                    'b': { type: 'b', color: 'b' }, 'r': { type: 'r', color: 'b' },
+                    'q': { type: 'q', color: 'b' }, 'k': { type: 'k', color: 'b' }
+                };
+            }
+
+            reset() {
+                this.board = new Array(64).fill(null);
+                this.turn = 'w';
+                this.castling = { w: { k: false, q: false }, b: { k: false, q: false } };
+                this.ep_square = -1;
+                this.half_moves = 0;
+                this.move_number = 1;
+                this.history = [];
+            }
+
+            loadFEN(fen) {
+                this.reset();
+                const parts = fen.split(' ');
+                if (parts.length < 4) return false;
+                
+                let square = 0;
+                for (let i = 0; i < parts[0].length; i++) {
+                    const char = parts[0][i];
+                    if (char === '/') {
+                        continue;
+                    } else if (/\d/.test(char)) {
+                        square += parseInt(char, 10);
+                    } else {
+                        if (square >= 64) return false;
+                        this.board[square] = this.pieceMap[char];
+                        square++;
+                    }
+                }
+
+                this.turn = parts[1] === 'w' ? 'w' : 'b';
+                
+                if (parts[2] !== '-') {
+                    if (parts[2].includes('K')) this.castling.w.k = true;
+                    if (parts[2].includes('Q')) this.castling.w.q = true;
+                    if (parts[2].includes('k')) this.castling.b.k = true;
+                    if (parts[2].includes('q')) this.castling.b.q = true;
+                }
+
+                if (parts[3] !== '-') {
+                    this.ep_square = this.algebraicToSquare(parts[3]);
+                } else {
+                    this.ep_square = -1;
+                }
+
+                if (parts[4]) this.half_moves = parseInt(parts[4], 10);
+                if (parts[5]) this.move_number = parseInt(parts[5], 10);
+                return true;
+            }
+
+            getFEN() {
+                let fen = '';
+                for (let rank = 7; rank >= 0; rank--) {
+                    let emptyCount = 0;
+                    for (let file = 0; file < 8; file++) {
+                        const piece = this.board[rank * 8 + file];
+                        if (piece) {
+                            if (emptyCount > 0) { fen += emptyCount; emptyCount = 0; }
+                            fen += (piece.color === 'w') ? piece.type.toUpperCase() : piece.type;
+                        } else {
+                            emptyCount++;
+                        }
+                    }
+                    if (emptyCount > 0) fen += emptyCount;
+                    if (rank > 0) fen += '/';
+                }
+                fen += ` ${this.turn} `;
+                let castling = '';
+                if (this.castling.w.k) castling += 'K';
+                if (this.castling.w.q) castling += 'Q';
+                if (this.castling.b.k) castling += 'k';
+                if (this.castling.b.q) castling += 'q';
+                fen += (castling || '-') + ' ';
+                fen += (this.ep_square !== -1 ? this.squareToAlgebraic(this.ep_square) : '-') + ' ';
+                fen += `${this.half_moves} ${this.move_number}`;
+                return fen;
+            }
+
+            algebraicToSquare(str) {
+                const file = str.charCodeAt(0) - 97; // 'a' = 97
+                const rank = 8 - parseInt(str[1], 10);
+                return rank * 8 + file;
+            }
+
+            squareToAlgebraic(sq) {
+                const file = sq % 8;
+                const rank = 8 - Math.floor(sq / 8);
+                return String.fromCharCode(97 + file) + rank;
+            }
+            
+            getSquare(file, rank) {
+                if (file < 0 || file > 7 || rank < 0 || rank > 7) return -1;
+                return rank * 8 + file;
+            }
+
+            generateLegalMoves() {
+                const moves = [];
+                const color = this.turn;
+                const oppColor = color === 'w' ? 'b' : 'w';
+
+                for (let i = 0; i < 64; i++) {
+                    const piece = this.board[i];
+                    if (piece && piece.color === color) {
+                        this.generatePseudoLegalMoves(i, piece, moves);
+                    }
+                }
+
+                // Filter moves that leave king in check
+                return moves.filter(move => {
+                    this.makeMoveInternal(move);
+                    const inCheck = this.isKingInCheck(color);
+                    this.undoMoveInternal();
+                    return !inCheck;
+                });
+            }
+
+            generatePseudoLegalMoves(sq, piece, moves) {
+                const file = sq % 8;
+                const rank = Math.floor(sq / 8);
+                
+                const addMove = (targetSq, type = 'normal') => {
+                    const targetPiece = this.board[targetSq];
+                    if (!targetPiece || targetPiece.color !== piece.color) {
+                        const move = { from: sq, to: targetSq, type };
+                        // Promotion
+                        if (piece.type === 'p' && (Math.floor(targetSq / 8) === 0 || Math.floor(targetSq / 8) === 7)) {
+                            ['q', 'r', 'b', 'n'].forEach(promo => {
+                                moves.push({ ...move, promotion: promo });
+                            });
+                        } else {
+                            moves.push(move);
+                        }
+                        return targetPiece ? false : true; // Return true if empty (can slide), false if capture (stop sliding)
+                    }
+                    return false; // Blocked by own piece
+                };
+
+                if (piece.type === 'p') {
+                    const dir = piece.color === 'w' ? -1 : 1;
+                    const startRank = piece.color === 'w' ? 6 : 1;
+                    
+                    // Push 1
+                    const oneStep = this.getSquare(file, rank + dir);
+                    if (oneStep !== -1 && !this.board[oneStep]) {
+                        addMove(oneStep);
+                        // Push 2
+                        if (rank === startRank) {
+                            const twoStep = this.getSquare(file, rank + dir * 2);
+                            if (twoStep !== -1 && !this.board[twoStep]) {
+                                addMove(twoStep);
+                            }
+                        }
+                    }
+                    // Captures
+                    for (const df of [-1, 1]) {
+                        const targetSq = this.getSquare(file + df, rank + dir);
+                        if (targetSq !== -1) {
+                            if (this.board[targetSq] && this.board[targetSq].color !== piece.color) {
+                                addMove(targetSq);
+                            } else if (targetSq === this.ep_square) {
+                                addMove(targetSq, 'ep');
+                            }
+                        }
+                    }
+                } 
+                else if (piece.type === 'n') {
+                    const offsets = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
+                    for (const [df, dr] of offsets) {
+                        const tFile = file + df;
+                        const tRank = rank + dr;
+                        if (tFile >= 0 && tFile <= 7 && tRank >= 0 && tRank <= 7) {
+                            addMove(this.getSquare(tFile, tRank));
+                        }
+                    }
+                }
+                else if (piece.type === 'b' || piece.type === 'r' || piece.type === 'q') {
+                    const dirs = [];
+                    if (piece.type !== 'r') dirs.push([-1,-1],[-1,1],[1,-1],[1,1]); // Diagonals
+                    if (piece.type !== 'b') dirs.push([0,-1],[0,1],[-1,0],[1,0]);   // Straights
+                    
+                    for (const [df, dr] of dirs) {
+                        let tFile = file + df;
+                        let tRank = rank + dr;
+                        while (tFile >= 0 && tFile <= 7 && tRank >= 0 && tRank <= 7) {
+                            const targetSq = this.getSquare(tFile, tRank);
+                            if (!addMove(targetSq)) break;
+                            tFile += df;
+                            tRank += dr;
+                        }
+                    }
+                }
+                else if (piece.type === 'k') {
+                    const dirs = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+                    for (const [df, dr] of dirs) {
+                        const tFile = file + df;
+                        const tRank = rank + dr;
+                        if (tFile >= 0 && tFile <= 7 && tRank >= 0 && tRank <= 7) {
+                            addMove(this.getSquare(tFile, tRank));
+                        }
+                    }
+                    // Castling
+                    if (piece.color === 'w' && sq === 60) {
+                        if (this.castling.w.k && !this.board[61] && !this.board[62]) {
+                            if (!this.isSquareAttacked(60, 'b') && !this.isSquareAttacked(61, 'b') && !this.isSquareAttacked(62, 'b')) {
+                                addMove(62, 'castle_k');
+                            }
+                        }
+                        if (this.castling.w.q && !this.board[59] && !this.board[58] && !this.board[57]) {
+                            if (!this.isSquareAttacked(60, 'b') && !this.isSquareAttacked(59, 'b') && !this.isSquareAttacked(58, 'b')) {
+                                addMove(58, 'castle_q');
+                            }
+                        }
+                    } else if (piece.color === 'b' && sq === 4) {
+                        if (this.castling.b.k && !this.board[5] && !this.board[6]) {
+                            if (!this.isSquareAttacked(4, 'w') && !this.isSquareAttacked(5, 'w') && !this.isSquareAttacked(6, 'w')) {
+                                addMove(6, 'castle_k');
+                            }
+                        }
+                        if (this.castling.b.q && !this.board[3] && !this.board[2] && !this.board[1]) {
+                            if (!this.isSquareAttacked(4, 'w') && !this.isSquareAttacked(3, 'w') && !this.isSquareAttacked(2, 'w')) {
+                                addMove(2, 'castle_q');
+                            }
+                        }
+                    }
+                }
+            }
+
+            isSquareAttacked(sq, byColor) {
+                // To check if a square is attacked, put a super-piece of the defender color there 
+                // and see if it can "capture" an enemy piece of the corresponding type.
+                const file = sq % 8;
+                const rank = Math.floor(sq / 8);
+                
+                // Knight attacks
+                const nOffsets = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
+                for (const [df, dr] of nOffsets) {
+                    const tSq = this.getSquare(file + df, rank + dr);
+                    if (tSq !== -1 && this.board[tSq] && this.board[tSq].color === byColor && this.board[tSq].type === 'n') return true;
+                }
+                
+                // King attacks
+                const kOffsets = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+                for (const [df, dr] of kOffsets) {
+                    const tSq = this.getSquare(file + df, rank + dr);
+                    if (tSq !== -1 && this.board[tSq] && this.board[tSq].color === byColor && this.board[tSq].type === 'k') return true;
+                }
+                
+                // Pawn attacks
+                const pDir = byColor === 'w' ? 1 : -1; // Reverse perspective: check if enemy pawn attacks us
+                for (const df of [-1, 1]) {
+                    const tSq = this.getSquare(file + df, rank + pDir);
+                    if (tSq !== -1 && this.board[tSq] && this.board[tSq].color === byColor && this.board[tSq].type === 'p') return true;
+                }
+
+                // Sliding attacks (Rook/Queen)
+                const sDirs = [[0,-1],[0,1],[-1,0],[1,0]];
+                for (const [df, dr] of sDirs) {
+                    let tFile = file + df;
+                    let tRank = rank + dr;
+                    while (tFile >= 0 && tFile <= 7 && tRank >= 0 && tRank <= 7) {
+                        const tSq = this.getSquare(tFile, tRank);
+                        const p = this.board[tSq];
+                        if (p) {
+                            if (p.color === byColor && (p.type === 'r' || p.type === 'q')) return true;
+                            break; // blocked
+                        }
+                        tFile += df;
+                        tRank += dr;
+                    }
+                }
+                // Sliding attacks (Bishop/Queen)
+                const dDirs = [[-1,-1],[-1,1],[1,-1],[1,1]];
+                for (const [df, dr] of dDirs) {
+                    let tFile = file + df;
+                    let tRank = rank + dr;
+                    while (tFile >= 0 && tFile <= 7 && tRank >= 0 && tRank <= 7) {
+                        const tSq = this.getSquare(tFile, tRank);
+                        const p = this.board[tSq];
+                        if (p) {
+                            if (p.color === byColor && (p.type === 'b' || p.type === 'q')) return true;
+                            break; // blocked
+                        }
+                        tFile += df;
+                        tRank += dr;
+                    }
+                }
+
+                return false;
+            }
+
+            isKingInCheck(color) {
+                let kingSq = -1;
+                for (let i = 0; i < 64; i++) {
+                    if (this.board[i] && this.board[i].color === color && this.board[i].type === 'k') {
+                        kingSq = i;
+                        break;
+                    }
+                }
+                if (kingSq === -1) return false; // Should not happen in valid chess
+                return this.isSquareAttacked(kingSq, color === 'w' ? 'b' : 'w');
+            }
+
+            makeMoveInternal(move) {
+                const state = {
+                    board: [...this.board],
+                    turn: this.turn,
+                    castling: JSON.parse(JSON.stringify(this.castling)),
+                    ep_square: this.ep_square,
+                    half_moves: this.half_moves
+                };
+                this.history.push(state);
+
+                const piece = this.board[move.from];
+                this.board[move.to] = piece;
+                this.board[move.from] = null;
+
+                if (move.promotion) {
+                    this.board[move.to] = { type: move.promotion, color: piece.color };
+                }
+
+                // En passant capture
+                if (move.type === 'ep') {
+                    const capSq = piece.color === 'w' ? move.to + 8 : move.to - 8;
+                    this.board[capSq] = null;
+                }
+
+                // Castling move rook
+                if (move.type === 'castle_k') {
+                    const rFrom = move.to + 1;
+                    const rTo = move.to - 1;
+                    this.board[rTo] = this.board[rFrom];
+                    this.board[rFrom] = null;
+                } else if (move.type === 'castle_q') {
+                    const rFrom = move.to - 2;
+                    const rTo = move.to + 1;
+                    this.board[rTo] = this.board[rFrom];
+                    this.board[rFrom] = null;
+                }
+
+                // Update state
+                this.ep_square = -1;
+                if (piece.type === 'p' && Math.abs(move.from - move.to) === 16) {
+                    this.ep_square = piece.color === 'w' ? move.from - 8 : move.from + 8;
+                }
+
+                if (piece.type === 'k') {
+                    this.castling[piece.color].k = false;
+                    this.castling[piece.color].q = false;
+                }
+                if (piece.type === 'r') {
+                    if (move.from === 63) this.castling.w.k = false;
+                    if (move.from === 56) this.castling.w.q = false;
+                    if (move.from === 7) this.castling.b.k = false;
+                    if (move.from === 0) this.castling.b.q = false;
+                }
+
+                this.turn = this.turn === 'w' ? 'b' : 'w';
+            }
+
+            undoMoveInternal() {
+                if (this.history.length === 0) return;
+                const state = this.history.pop();
+                this.board = state.board;
+                this.turn = state.turn;
+                this.castling = state.castling;
+                this.ep_square = state.ep_square;
+                this.half_moves = state.half_moves;
+            }
+
+            moveFromUCI(uci) {
+                const from = this.algebraicToSquare(uci.substring(0, 2));
+                const to = this.algebraicToSquare(uci.substring(2, 4));
+                const promotion = uci.length === 5 ? uci[4] : undefined;
+
+                const legalMoves = this.generateLegalMoves();
+                for (const move of legalMoves) {
+                    if (move.from === from && move.to === to && move.promotion === promotion) {
+                        return move;
+                    }
+                }
+                return null;
+            }
+            
+            moveToUCI(move) {
+                let uci = this.squareToAlgebraic(move.from) + this.squareToAlgebraic(move.to);
+                if (move.promotion) uci += move.promotion;
+                return uci;
+            }
+
+            makeMoveUCI(uci) {
+                const move = this.moveFromUCI(uci);
+                if (move) {
+                    this.makeMoveInternal(move);
+                    return move;
+                }
+                return null;
+            }
+
+            moveToSAN(move) {
+                if (move.type === 'castle_k') return 'O-O';
+                if (move.type === 'castle_q') return 'O-O-O';
+                const piece = this.board[move.from];
+                if (!piece) return this.squareToAlgebraic(move.from) + this.squareToAlgebraic(move.to);
+                let san = '';
+                if (piece.type !== 'p') san += piece.type.toUpperCase();
+                // Disambiguation
+                const legalMoves = this.generateLegalMoves();
+                const ambig = legalMoves.filter(m =>
+                    m.from !== move.from && m.to === move.to &&
+                    this.board[m.from] && this.board[m.from].type === piece.type &&
+                    this.board[m.from].color === piece.color
+                );
+                if (ambig.length > 0 && piece.type !== 'p') {
+                    const ff = move.from % 8, fr = Math.floor(move.from / 8);
+                    const sameFile = ambig.some(m => (m.from % 8) === ff);
+                    const sameRank = ambig.some(m => Math.floor(m.from / 8) === fr);
+                    if (!sameFile) san += String.fromCharCode(97 + ff);
+                    else if (!sameRank) san += (8 - fr).toString();
+                    else san += this.squareToAlgebraic(move.from);
+                }
+                // Pawn captures: prepend file
+                const isCapture = !!this.board[move.to] || move.type === 'ep';
+                if (piece.type === 'p' && isCapture) san += String.fromCharCode(97 + (move.from % 8));
+                if (isCapture) san += 'x';
+                san += this.squareToAlgebraic(move.to);
+                if (move.promotion) san += '=' + move.promotion.toUpperCase();
+                // Check/mate
+                this.makeMoveInternal(move);
+                const inCheck = this.isKingInCheck(this.turn);
+                if (inCheck) san += this.generateLegalMoves().length > 0 ? '+' : '#';
+                this.undoMoveInternal();
+                return san;
+            }
+        }
+
+        // ==========================================
+        // 2. DATA & STORAGE
+        // ==========================================
+        
+        let puzzles = [];
+        let currentBook = '';
+        let moveHistory = []; // {san, color}
+
+        function recordMove(san, color) {
+            moveHistory.push({ san, color });
+            renderMoveHistory();
+        }
+
+        function renderMoveHistory() {
+            const el = document.getElementById('move-history');
+            if (!el) return;
+            let html = '';
+            for (let i = 0; i < moveHistory.length; i += 2) {
+                const w = moveHistory[i];
+                const b = moveHistory[i + 1];
+                const isLastPair = (i >= moveHistory.length - 2);
+                html += `<div class="move-pair${isLastPair ? (b ? ' last-b' : ' last-w') : ''}">` +
+                    `<span class="move-num">${Math.floor(i/2)+1}.</span>` +
+                    `<span class="move-w">${w.san}</span>` +
+                    (b ? `<span class="move-b">${b.san}</span>` : '') +
+                    '</div>';
+            }
+            el.innerHTML = html;
+            el.scrollTop = el.scrollHeight;
+        }
+
+        // ==========================================
+        // App State
+        // ==========================================
+        
+        const storage = {
+            loadState: function(key) {
+                const s = localStorage.getItem(key);
+                if (s) {
+                    const parsed = JSON.parse(s);
+                    if (parsed.cycleTimeMs === undefined) parsed.cycleTimeMs = 0;
+                    if (parsed.currentPuzzleIndex === undefined) parsed.currentPuzzleIndex = 0;
+                    if (parsed.currentCycle === undefined) parsed.currentCycle = 1;
+                    return parsed;
+                }
+                return { currentCycle: 1, currentPuzzleIndex: 0, puzzleStatuses: {}, cycleTimeMs: 0, prevCycleTimeMs: null, lastSaveTime: Date.now() };
+            },
+            saveState: function(state, key) {
+                state.lastSaveTime = Date.now();
+                localStorage.setItem(key, JSON.stringify(state));
+            },
+            clearState: function(key) {
+                localStorage.removeItem(key);
+            }
+        };
+
+        // ==========================================
+        // 3. UI & APP LOGIC
+        // ==========================================
+
+        const engine = new ChessEngine();
+        let appState = {};
+        
+        let puzzleTimerInterval = null;
+        let sessionTimerInterval = null;
+        let currentPuzzleTimeMs = 0;
+        let lastTickTime = Date.now();
+        
+        // Puzzle execution state
+        let currentPuzzle = null;
+        let moveIndex = 0; // index in solution array
+        let playerTurnToMove = false;
+        
+        // UI Elements
+        const boardEl = document.getElementById('board');
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const boardColorSelect = document.getElementById('board-color-select');
+        const statusEl = document.getElementById('status-message');
+        
+        const pieceClasses = {'wk':'wk','wq':'wq','wr':'wr','wb':'wb','wn':'wn','wp':'wp','bk':'bk','bq':'bq','br':'br','bb':'bb','bn':'bn','bp':'bp'};
+
+        let draggingPiece = null;
+        let dragSourceSq = -1;
+        let dragElement = null;
+
+        let boardFlipped = false;  // track flip state
+
+        function startTraining() {
+            // Reset board flip to default (white on bottom)
+            boardFlipped = false;
+            if (puzzles.length === 0) {
+                setStatus("This book has no entries.", "wrong");
+                document.getElementById('board').style.opacity = '0.5';
+                document.getElementById('puzzle-number').textContent = "0 / 0";
+                document.getElementById('book-mode-badge').textContent = "";
+                return;
+            }
+            document.getElementById('board').style.opacity = '1';
+            appState = storage.loadState('chess_woodpecker_state_' + currentBook);
+            
+            // Start
+            loadPuzzleIndex(appState.currentPuzzleIndex);
+            updateStats();
+        }
+
+        function initApp() {
+            // Theme setup
+            if (localStorage.getItem('theme') === 'dark') {
+                document.body.setAttribute('data-theme', 'dark');
+            }
+            if (localStorage.getItem('boardColor') === 'green') {
+                document.body.setAttribute('data-board-color', 'green');
+                boardColorSelect.value = 'green';
+            }
+            
+            themeToggleBtn.addEventListener('click', () => {
+                const current = document.body.getAttribute('data-theme');
+                const next = current === 'dark' ? 'light' : 'dark';
+                document.body.setAttribute('data-theme', next);
+                localStorage.setItem('theme', next);
+            });
+            
+            boardColorSelect.addEventListener('change', (e) => {
+                document.body.setAttribute('data-board-color', e.target.value);
+                localStorage.setItem('boardColor', e.target.value);
+            });
+
+            // Buttons setup
+            document.getElementById('prev-btn').addEventListener('click', () => loadPuzzleIndex(appState.currentPuzzleIndex - 1));
+            document.getElementById('next-btn').addEventListener('click', () => loadPuzzleIndex(appState.currentPuzzleIndex + 1));
+            document.getElementById('show-solution-btn').addEventListener('click', showSolution);
+            document.getElementById('autoplay-btn').addEventListener('click', toggleAutoPlay);
+            document.getElementById('flip-btn').addEventListener('click', () => { boardFlipped = !boardFlipped; renderBoard(true); });
+            document.getElementById('resume-btn').addEventListener('click', resumeUnsolved);
+            document.getElementById('jump-btn').addEventListener('click', () => {
+                const val = parseInt(document.getElementById('jump-input').value);
+                if (val > 0 && val <= puzzles.length) {
+                    loadPuzzleIndex(val - 1);
+                }
+            });
+            document.getElementById('new-cycle-btn').addEventListener('click', startNewCycle);
+            document.getElementById('reset-all-btn').addEventListener('click', resetProgress);
+
+            // Board events (Drag and drop)
+            boardEl.addEventListener('mousedown', onBoardMouseDown);
+            document.addEventListener('mousemove', onDocumentMouseMove);
+            document.addEventListener('mouseup', onDocumentMouseUp);
+
+            // Timer interval
+            sessionTimerInterval = setInterval(updateTimers, 100);
+
+            // Populate select box
+            const select = document.getElementById('book-select');
+            const books = window.CHESS_BOOKS_LIST || [];
+            if (books.length === 0) {
+                setStatus("No books found.", "wrong");
+                return;
+            }
+            books.forEach(b => {
+                const opt = document.createElement('option');
+                // Support both old string format and new {key, name} object format
+                opt.value = typeof b === 'object' ? b.key : b;
+                opt.textContent = typeof b === 'object' ? b.name : b.replace(/_/g, ' ');
+                select.appendChild(opt);
+            });
+
+            select.addEventListener('change', (e) => loadBook(e.target.value));
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+                if (e.key === 'ArrowRight' || e.key === 'n') loadPuzzleIndex(appState.currentPuzzleIndex + 1);
+                else if (e.key === 'ArrowLeft' || e.key === 'p') loadPuzzleIndex(appState.currentPuzzleIndex - 1);
+                else if (e.key === ' ') { e.preventDefault(); toggleAutoPlay(); }
+                else if (e.key === 'f' || e.key === 'F') { boardFlipped = !boardFlipped; renderBoard(true); }
+                else if (e.key === 's' || e.key === 'S') showSolution();
+            });
+
+            // Auto load
+            const firstBook = books[0];
+            const firstKey = typeof firstBook === 'object' ? firstBook.key : firstBook;
+            select.value = firstKey;
+            loadBook(firstKey);
+        }
+
+        function loadBook(bookName) {
+            currentBook = bookName;
+            setStatus("Loading book...", "");
+            // Update page title dynamically
+            const displayName = bookName.replace(/_/g, ' ');
+            document.querySelector('h1').textContent = displayName;
+            document.title = displayName + ' — Chess Trainer';
+
+            if (!window.CHESS_BOOKS || !window.CHESS_BOOKS[bookName]) {
+                const script = document.createElement('script');
+                script.src = 'data/' + encodeURIComponent(bookName) + '.js';
+                script.onload = () => {
+                    puzzles = window.CHESS_BOOKS[bookName] || [];
+                    startTraining();
+                };
+                document.head.appendChild(script);
+            } else {
+                puzzles = window.CHESS_BOOKS[bookName];
+                startTraining();
+            }
+        }
+
+        // Run
+        window.addEventListener('DOMContentLoaded', initApp);
+
+        // ---- Render Board ----
+        let lastMoveSquares = [];
+        let pieceElements = {}; 
+        
+        function getSquareTransform(sq) {
+            const rawFile = sq % 8;
+            const rawRank = Math.floor(sq / 8);
+            const file = boardFlipped ? 7 - rawFile : rawFile;
+            const rank = boardFlipped ? 7 - rawRank : rawRank;
+            return `translate(${file * 100}%, ${rank * 100}%)`;
+        }
+
+        function getSquareFromEvent(e) {
+            const boardRect = boardEl.getBoundingClientRect();
+            if (e.clientX >= boardRect.left && e.clientX <= boardRect.right &&
+                e.clientY >= boardRect.top && e.clientY <= boardRect.bottom) {
+                let file = Math.floor((e.clientX - boardRect.left) / (boardRect.width / 8));
+                let rank = Math.floor((e.clientY - boardRect.top) / (boardRect.height / 8));
+                if (boardFlipped) { file = 7 - file; rank = 7 - rank; }
+                return rank * 8 + file;
+            }
+            return -1;
+        }
+
+        function createSquares() {
+            boardEl.innerHTML = '';
+            for (let rank = 0; rank < 8; rank++) {
+                for (let file = 0; file < 8; file++) {
+                    const sq = rank * 8 + file;
+                    const isLight = (rank + file) % 2 === 0;
+                    const div = document.createElement('div');
+                    div.className = `square ${isLight ? 'light' : 'dark'}`;
+                    div.dataset.sq = sq;
+                    boardEl.appendChild(div);
+                }
+            }
+        }
+
+        function renderBoard(fullRedraw = false) {
+            if (boardEl.children.length === 0) createSquares();
+            
+            document.querySelectorAll('.square').forEach(el => el.classList.remove('highlight-last'));
+            lastMoveSquares.forEach(sq => {
+                const el = document.querySelector(`.square[data-sq="${sq}"]`);
+                if(el) el.classList.add('highlight-last');
+            });
+
+            if (fullRedraw) {
+                document.querySelectorAll('.piece').forEach(el => el.remove());
+                pieceElements = {};
+                for (let sq = 0; sq < 64; sq++) {
+                    const piece = engine.board[sq];
+                    if (piece) {
+                        const pDiv = document.createElement('div');
+                        const cls = piece.color + piece.type;
+                        pDiv.className = `piece ${cls}`;
+                        pDiv.dataset.sq = sq;
+                        pDiv.style.transform = getSquareTransform(sq);
+                        boardEl.appendChild(pDiv);
+                        pieceElements[sq] = pDiv;
+                    }
+                }
+            }
+        }
+        
+        function highlightLegalMoves(moves) {
+            document.querySelectorAll('.square').forEach(sq => sq.classList.remove('legal-move', 'capture'));
+            moves.forEach(m => {
+                const el = document.querySelector(`.square[data-sq="${m.to}"]`);
+                if (el) {
+                    el.classList.add('legal-move');
+                    if (engine.board[m.to]) el.classList.add('capture');
+                }
+            });
+        }
+
+        function flashBoard(type) {
+            const cls = type === 'correct' ? 'highlight-correct' : 'highlight-wrong';
+            document.querySelectorAll('.square').forEach(el => el.classList.add(cls));
+            setTimeout(() => {
+                document.querySelectorAll('.square').forEach(el => el.classList.remove(cls));
+            }, 300);
+        }
+
+        function setStatus(msg, type) {
+            statusEl.textContent = msg;
+            statusEl.className = `status-message ${type}`;
+        }
+
+        let selectedSq = -1;
+        let isDragging = false;
+
+
+        function onBoardMouseDown(e) {
+            if (!playerTurnToMove) return;
+            const targetSq = getSquareFromEvent(e);
+            if (targetSq === -1) return;
+            const piece = engine.board[targetSq];
+            if (selectedSq !== -1 && (!piece || piece.color !== engine.turn)) {
+                attemptMove(selectedSq, targetSq);
+                selectedSq = -1;
+                document.querySelectorAll('.square').forEach(el => el.classList.remove('legal-move', 'capture'));
+                return;
+            }
+            if (piece && piece.color === engine.turn) {
+                dragSourceSq = targetSq;
+                isDragging = false;
+                const moves = engine.generateLegalMoves().filter(m => m.from === targetSq);
+                highlightLegalMoves(moves);
+                dragElement = pieceElements[dragSourceSq];
+            }
+        }
+
+        function onDocumentMouseMove(e) {
+            if (dragSourceSq === -1 || !dragElement) return;
+            if (!isDragging) {
+                isDragging = true;
+                dragElement.style.transition = 'none';
+                dragElement.style.zIndex = '1000';
+            }
+            if (isDragging) {
+                const boardRect = boardEl.getBoundingClientRect();
+                const pieceWidth = boardRect.width / 8;
+                const file = boardFlipped ? 7 - (dragSourceSq % 8) : (dragSourceSq % 8);
+                const rank = Math.floor(dragSourceSq / 8);
+                let x = e.clientX - boardRect.left - (pieceWidth / 2);
+                let y = e.clientY - boardRect.top - (pieceWidth / 2);
+                dragElement.style.transform = `translate(${x}px, ${y}px)`;
+            }
+        }
+
+        function onDocumentMouseUp(e) {
+            if (dragSourceSq === -1 || !dragElement) return;
+            const targetSq = getSquareFromEvent(e);
+            if (isDragging) {
+                dragElement.style.transition = 'transform 0.2s ease';
+                dragElement.style.zIndex = '10';
+                if (targetSq !== -1 && targetSq !== dragSourceSq) {
+                    const moved = attemptMove(dragSourceSq, targetSq);
+                    if (!moved) dragElement.style.transform = getSquareTransform(dragSourceSq);
+                    document.querySelectorAll('.square').forEach(sq => sq.classList.remove('legal-move', 'capture'));
+                    selectedSq = -1;
+                } else {
+                    dragElement.style.transform = getSquareTransform(dragSourceSq);
+                    if (targetSq === dragSourceSq) selectedSq = dragSourceSq;
+                    else {
+                        document.querySelectorAll('.square').forEach(sq => sq.classList.remove('legal-move', 'capture'));
+                        selectedSq = -1;
+                    }
+                }
+            } else {
+                if (targetSq === dragSourceSq) {
+                    if (selectedSq === dragSourceSq) {
+                        selectedSq = -1;
+                        document.querySelectorAll('.square').forEach(sq => sq.classList.remove('legal-move', 'capture'));
+                    } else {
+                        selectedSq = dragSourceSq;
+                    }
+                }
+            }
+            dragSourceSq = -1;
+            isDragging = false;
+            dragElement = null;
+        }
+
+        function animatePieceMove(fromSq, toSq, promotion = null, isCastling = null) {
+            const pDiv = pieceElements[fromSq];
+            if (!pDiv) return;
+            if (pieceElements[toSq]) {
+                const captured = pieceElements[toSq];
+                setTimeout(() => captured.remove(), 200);
+            }
+            pieceElements[toSq] = pDiv;
+            delete pieceElements[fromSq];
+            pDiv.dataset.sq = toSq;
+            pDiv.style.transform = getSquareTransform(toSq);
+            if (promotion) {
+                const color = pDiv.className.split(' ')[1][0];
+                setTimeout(() => pDiv.className = `piece ${color}${promotion}`, 200);
+            }
+            if (isCastling === 'castle_k') {
+                const rFrom = toSq + 1; const rTo = toSq - 1;
+                const rDiv = pieceElements[rFrom];
+                if (rDiv) { pieceElements[rTo] = rDiv; delete pieceElements[rFrom]; rDiv.dataset.sq = rTo; rDiv.style.transform = getSquareTransform(rTo); }
+            } else if (isCastling === 'castle_q') {
+                const rFrom = toSq - 2; const rTo = toSq + 1;
+                const rDiv = pieceElements[rFrom];
+                if (rDiv) { pieceElements[rTo] = rDiv; delete pieceElements[rFrom]; rDiv.dataset.sq = rTo; rDiv.style.transform = getSquareTransform(rTo); }
+            }
+        }
+
+        function attemptMove(fromSq, toSq) {
+            if (!playerTurnToMove) return false;
+            const legalMoves = engine.generateLegalMoves();
+            let moveObj = legalMoves.find(m => m.from === fromSq && m.to === toSq && !m.promotion);
+            if (!moveObj) moveObj = legalMoves.find(m => m.from === fromSq && m.to === toSq && m.promotion === 'q');
+            if (!moveObj) return false;
+
+            const isPosition = isPracticeMode || (!currentPuzzle) || currentPuzzle.type === 'position' || currentPuzzle.solution.length === 0;
+
+            if (isPosition) {
+                const san = engine.moveToSAN(moveObj);
+                animatePieceMove(moveObj.from, moveObj.to, moveObj.promotion, moveObj.type);
+                engine.makeMoveInternal(moveObj);
+                recordMove(san, engine.turn === 'w' ? 'b' : 'w');
+                lastMoveSquares = [moveObj.from, moveObj.to];
+                renderBoard(false);
+                
+                if (isEngineEnabled && stockfishWorker) {
+                    playerTurnToMove = false;
+                    setStatus(`Free play: ${san}. Engine thinking...`, 'info');
+                    stockfishWorker.postMessage('position fen ' + engine.getFEN());
+                    stockfishWorker.postMessage('go depth 10');
+                } else {
+                    setStatus(`Free play: ${san}`, 'info');
+                }
+                return true;
+            }
+
+            const uciMove = engine.moveToUCI(moveObj);
+            const expectedMove = currentPuzzle.solution[moveIndex];
+            const isGame = currentPuzzle.type === 'game' || currentPuzzle.type === 'repertoire';
+
+            if (uciMove === expectedMove) {
+                const san = engine.moveToSAN(moveObj);
+                animatePieceMove(moveObj.from, moveObj.to, moveObj.promotion, moveObj.type);
+                engine.makeMoveInternal(moveObj);
+                recordMove(san, engine.turn === 'w' ? 'b' : 'w');
+                lastMoveSquares = [moveObj.from, moveObj.to];
+                renderBoard(false);
+                if (!isGame) flashBoard('correct');
+                moveIndex++;
+                if (moveIndex >= currentPuzzle.solution.length) {
+                    playerTurnToMove = false;
+                    setStatus(isGame ? '🏁 End of game!' : 'Correct! ✓', 'correct');
+                    const status = appState.puzzleStatuses[currentPuzzle.id];
+                    if (status !== 'solved_with_hint' && status !== 'failed') appState.puzzleStatuses[currentPuzzle.id] = 'solved';
+                    storage.saveState(appState, 'chess_woodpecker_state_' + currentBook);
+                    updateStats();
+                } else {
+                    playerTurnToMove = false;
+                    setStatus(isGame ? 'Good! Opponent thinking...' : 'Correct! Opponent thinking...', '');
+                    setTimeout(playOpponentMove, 500);
+                }
+                return true;
+            } else {
+                if (isGame) {
+                    // In game mode: show the correct move instead of penalizing
+                    flashBoard('wrong');
+                    const correctSan = expectedMove;
+                    setStatus(`Not the main line. Expected: ${correctSan}`, 'wrong');
+                    // Don't mark as failed for games, just let them retry
+                } else {
+                    flashBoard('wrong');
+                    setStatus('Wrong move, try again.', 'wrong');
+                    appState.puzzleStatuses[currentPuzzle.id] = 'failed';
+                    storage.saveState(appState, 'chess_woodpecker_state_' + currentBook);
+                    updateStats();
+                }
+                return false;
+            }
+        }
+
+        function playOpponentMove() {
+            const oppUci = currentPuzzle.solution[moveIndex];
+            const moveObj = engine.moveFromUCI(oppUci);
+            if (moveObj) {
+                const san = engine.moveToSAN(moveObj);
+                engine.makeMoveInternal(moveObj);
+                recordMove(san, engine.turn === 'w' ? 'b' : 'w');
+                animatePieceMove(moveObj.from, moveObj.to, moveObj.promotion, moveObj.type);
+                lastMoveSquares = [moveObj.from, moveObj.to];
+                renderBoard(false);
+                moveIndex++;
+                playerTurnToMove = true;
+                if (moveIndex >= currentPuzzle.solution.length) {
+                    playerTurnToMove = false;
+                    setStatus("Correct! ✓", "correct");
+                    const status = appState.puzzleStatuses[currentPuzzle.id];
+                    if (status !== 'solved_with_hint' && status !== 'failed') appState.puzzleStatuses[currentPuzzle.id] = 'solved';
+                    storage.saveState(appState, 'chess_woodpecker_state_' + currentBook);
+                    updateStats();
+                } else {
+                    setStatus("Your turn.", "info");
+                }
+            }
+        }
+
+        function loadPuzzleIndex(idx) {
+            if (isAutoPlaying) toggleAutoPlay();
+            idx = parseInt(idx, 10);
+            if (isNaN(idx) || idx < 0) idx = 0;
+            if (idx >= puzzles.length) idx = puzzles.length - 1;
+            appState.currentPuzzleIndex = idx;
+            storage.saveState(appState, 'chess_woodpecker_state_' + currentBook);
+            currentPuzzle = puzzles[idx];
+            moveIndex = 0;
+            currentPuzzleTimeMs = 0;
+            lastMoveSquares = [];
+            engine.loadFEN(currentPuzzle.fen);
+
+            const isPosition = currentPuzzle.type === 'position' || currentPuzzle.solution.length === 0;
+            const isGame = currentPuzzle.type === 'game' || currentPuzzle.type === 'repertoire';
+            const isRepertoire = currentPuzzle.type === 'repertoire';
+
+            // Auto-flip board: white positions stay normal, black to move flips
+            boardFlipped = (engine.turn === 'b');
+
+            // Reset move history for new puzzle/game
+            moveHistory = [];
+            renderMoveHistory();
+
+            // Update mode badge
+            const badge = document.getElementById('book-mode-badge');
+            if (isPosition) {
+                badge.textContent = '📋 Study Position';
+                badge.style.background = '#6a5acd';
+                playerTurnToMove = true; // Allow free play
+                if (!appState.puzzleStatuses[currentPuzzle.id]) {
+                    appState.puzzleStatuses[currentPuzzle.id] = 'solved';
+                    storage.saveState(appState, 'chess_woodpecker_state_' + currentBook);
+                }
+                setStatus('Study position. Free play mode.', 'info');
+            } else if (isRepertoire) {
+                badge.textContent = '📖 Repertoire';
+                badge.style.background = '#7b3fa0';
+                playerTurnToMove = true;
+                setStatus('Guess the move! (Repertoire)', 'info');
+            } else if (isGame) {
+                badge.textContent = '♟ Game Mode';
+                badge.style.background = '#2e7d32';
+                playerTurnToMove = true;
+                setStatus('Guess the move! (Game Mode)', 'info');
+            } else {
+                badge.textContent = '🧩 Puzzle';
+                badge.style.background = '#1d4ed8';
+                playerTurnToMove = true;
+                setStatus('Ready — find the best move!', '');
+            }
+
+            document.getElementById('puzzle-number').textContent = `${isPosition ? 'Position' : (isRepertoire ? 'Line' : (isGame ? 'Game' : 'Puzzle'))} ${idx + 1} / ${puzzles.length}`;
+            
+            // Category label
+            const catEl = document.getElementById('puzzle-category');
+            catEl.textContent = currentPuzzle.category || '';
+
+            const turnInd = document.getElementById('turn-indicator');
+            turnInd.textContent = engine.turn === 'w' ? 'White to move' : 'Black to move';
+            turnInd.className = `turn-indicator ${engine.turn === 'w' ? 'white' : 'black'}`;
+            renderBoard(true);
+            updateStats();
+        }
+
+        let isAutoPlaying = false;
+        let autoPlayTimeout = null;
+        let stockfishWorker = null;
+        let isEngineEnabled = false;
+        let isPracticeMode = false;
+
+        document.getElementById('engine-toggle').addEventListener('change', function(e) {
+            isEngineEnabled = e.target.checked;
+            if (isEngineEnabled && !stockfishWorker) {
+                initStockfishWorker(10); // Default to skill level 10 if toggled manually
+            }
+        });
+
+        function initStockfishWorker(skillLevel) {
+            if (stockfishWorker) {
+                stockfishWorker.postMessage(`setoption name Skill Level value ${skillLevel}`);
+                return;
+            }
+            const statusEl = document.getElementById('engine-status');
+            if (statusEl) statusEl.textContent = '(Loading engine...)';
+            try {
+                stockfishWorker = new Worker('js/stockfish.js');
+                stockfishWorker.postMessage('uci');
+                stockfishWorker.onmessage = function(e) {
+                    const msg = e.data;
+                    if (msg === 'uciok') {
+                        if (statusEl) statusEl.textContent = '(Ready)';
+                        stockfishWorker.postMessage('isready');
+                        stockfishWorker.postMessage(`setoption name Skill Level value ${skillLevel}`);
+                    }
+                    if (msg.startsWith('bestmove')) {
+                        const parts = msg.split(' ');
+                        const bestUci = parts[1];
+                        if (bestUci && bestUci !== '(none)') {
+                            playEngineMove(bestUci);
+                        } else {
+                            setStatus("Engine found no moves.", "warning");
+                            playerTurnToMove = true;
+                        }
+                    }
+                };
+            } catch(e) {
+                if (statusEl) statusEl.textContent = '(Failed to load)';
+                isEngineEnabled = false;
+                const toggle = document.getElementById('engine-toggle');
+                if (toggle) toggle.checked = false;
+                console.error("Stockfish worker error:", e);
+            }
+        }
+
+        function playEngineMove(uci) {
+            const moveObj = engine.moveFromUCI(uci);
+            if (moveObj) {
+                const san = engine.moveToSAN(moveObj);
+                engine.makeMoveInternal(moveObj);
+                recordMove(san, engine.turn === 'w' ? 'b' : 'w');
+                animatePieceMove(moveObj.from, moveObj.to, moveObj.promotion, moveObj.type);
+                lastMoveSquares = [moveObj.from, moveObj.to];
+                renderBoard(false);
+                setStatus(`Engine played: ${san}`, 'info');
+            }
+            playerTurnToMove = true;
+        }
+
+        function toggleAutoPlay() {
+            if (!currentPuzzle) return;
+            if (isAutoPlaying) {
+                isAutoPlaying = false;
+                clearTimeout(autoPlayTimeout);
+                document.getElementById('autoplay-btn').textContent = "Auto-Play ⏵";
+                playerTurnToMove = true;
+                setStatus("Auto-play paused. Your turn.", "info");
+            } else {
+                if (moveIndex >= currentPuzzle.solution.length) {
+                    // Reset if already at the end
+                    loadPuzzleIndex(appState.currentPuzzleIndex);
+                }
+                isAutoPlaying = true;
+                document.getElementById('autoplay-btn').textContent = "Pause ⏸";
+                playerTurnToMove = false;
+                setStatus("Auto-playing game...", "info");
+                autoPlayNextMove();
+            }
+        }
+
+        function autoPlayNextMove() {
+            if (!isAutoPlaying) return;
+            const isPosition = !currentPuzzle || currentPuzzle.solution.length === 0;
+            if (isPosition) {
+                // For position-only, auto-play = auto-next
+                loadPuzzleIndex(appState.currentPuzzleIndex + 1);
+                isAutoPlaying = true;
+                autoPlayTimeout = setTimeout(autoPlayNextMove, 2000);
+                return;
+            }
+            if (moveIndex < currentPuzzle.solution.length) {
+                const uci = currentPuzzle.solution[moveIndex];
+                const moveObj = engine.moveFromUCI(uci);
+                if (moveObj) {
+                    const san = engine.moveToSAN(moveObj);
+                    engine.makeMoveInternal(moveObj);
+                    recordMove(san, engine.turn === 'w' ? 'b' : 'w');
+                    animatePieceMove(moveObj.from, moveObj.to, moveObj.promotion, moveObj.type);
+                    lastMoveSquares = [moveObj.from, moveObj.to];
+                    renderBoard(false);
+                    // Auto-flip on each move in game mode
+                    boardFlipped = (engine.turn === 'b');
+                    Object.values(pieceElements).forEach(el => el.style.transform = getSquareTransform(parseInt(el.dataset.sq)));
+                }
+                moveIndex++;
+                
+                if (moveIndex >= currentPuzzle.solution.length) {
+                    // Load next game after a pause
+                    autoPlayTimeout = setTimeout(() => {
+                        if (isAutoPlaying) {
+                            loadPuzzleIndex(appState.currentPuzzleIndex + 1);
+                            autoPlayTimeout = setTimeout(autoPlayNextMove, 500);
+                        }
+                    }, 1500);
+                } else {
+                    autoPlayTimeout = setTimeout(autoPlayNextMove, 1000);
+                }
+            }
+        }
+
+        function showSolution() {
+            if (!currentPuzzle) return;
+            appState.puzzleStatuses[currentPuzzle.id] = 'solved_with_hint';
+            storage.saveState(appState, 'chess_woodpecker_state_' + currentBook);
+            updateStats();
+            engine.loadFEN(currentPuzzle.fen);
+            lastMoveSquares = [];
+            moveHistory = [];
+            renderBoard(true);
+            setStatus("Solution shown.", "warning");
+            playerTurnToMove = false;
+            let tempIndex = 0;
+            const playNextHintMove = () => {
+                if (tempIndex < currentPuzzle.solution.length) {
+                    const uci = currentPuzzle.solution[tempIndex];
+                    const m = engine.moveFromUCI(uci);
+                    if (m) {
+                        const san = engine.moveToSAN(m);
+                        engine.makeMoveInternal(m);
+                        recordMove(san, engine.turn === 'w' ? 'b' : 'w');
+                        animatePieceMove(m.from, m.to, m.promotion, m.type);
+                        lastMoveSquares = [m.from, m.to];
+                    }
+                    renderBoard(false);
+                    tempIndex++;
+                    setTimeout(playNextHintMove, 500);
+                }
+            };
+            playNextHintMove();
+        }
+
+        function resumeUnsolved() {
+            for (let i = 0; i < puzzles.length; i++) {
+                if (!appState.puzzleStatuses[puzzles[i].id]) {
+                    loadPuzzleIndex(i);
+                    return;
+                }
+            }
+            alert("All puzzles in this cycle are completed!");
+        }
+
+        function startNewCycle() {
+            appState.currentCycle++;
+            appState.prevCycleTimeMs = appState.cycleTimeMs;
+            appState.cycleTimeMs = 0;
+            appState.puzzleStatuses = {};
+            appState.currentPuzzleIndex = 0;
+            storage.saveState(appState, 'chess_woodpecker_state_' + currentBook);
+            loadPuzzleIndex(0);
+        }
+
+        function resetProgress() {
+            if(confirm("Are you sure you want to reset all progress for this book?")) {
+                storage.clearState('chess_woodpecker_state_' + currentBook);
+                location.reload();
+            }
+        }
+
+        function updateTimers() {
+            const now = Date.now();
+            const delta = now - lastTickTime;
+            lastTickTime = now;
+            
+            // Only update puzzle timer if it's player's turn and not solved
+            if (playerTurnToMove) {
+                currentPuzzleTimeMs += delta;
+                appState.cycleTimeMs += delta;
+            }
+            
+            document.getElementById('puzzle-timer').textContent = formatTimeMs(currentPuzzleTimeMs, true);
+            document.getElementById('session-timer').textContent = formatTimeMs(appState.cycleTimeMs, false);
+            
+            // Save state periodically
+            if (now - appState.lastSaveTime > 5000) {
+                storage.saveState(appState, 'chess_woodpecker_state_' + currentBook);
+            }
+        }
+
+        function formatTimeMs(ms, showTenths) {
+            const totalSec = Math.floor(ms / 1000);
+            const tenths = Math.floor((ms % 1000) / 100);
+            const hours = Math.floor(totalSec / 3600);
+            const mins = Math.floor((totalSec % 3600) / 60);
+            const secs = totalSec % 60;
+            
+            let str = '';
+            if (hours > 0) str += `${hours.toString().padStart(2, '0')}:`;
+            str += `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            if (showTenths) str += `.${tenths}`;
+            return str;
+        }
+
+        function updateStats() {
+            let solved = 0, hints = 0, failed = 0;
+            
+            puzzles.forEach(p => {
+                const st = appState.puzzleStatuses[p.id];
+                if (st === 'solved') solved++;
+                else if (st === 'solved_with_hint') hints++;
+                else if (st === 'failed') failed++;
+            });
+            
+            const total = solved + hints + failed;
+            
+            document.getElementById('stat-solved').textContent = solved;
+            document.getElementById('stat-hints').textContent = hints;
+            document.getElementById('stat-failed').textContent = failed;
+            
+            document.getElementById('current-cycle').textContent = appState.currentCycle;
+            
+            if (appState.prevCycleTimeMs !== null) {
+                document.getElementById('stat-prev-time').textContent = formatTimeMs(appState.prevCycleTimeMs, false);
+            } else {
+                document.getElementById('stat-prev-time').textContent = 'N/A';
+            }
+            
+            const progressFill = document.getElementById('progress-fill');
+            const percent = total > 0 ? (total / puzzles.length) * 100 : 0;
+            progressFill.style.width = `${percent}%`;
+            document.getElementById('progress-text').textContent = `${total} / ${puzzles.length}`;
+            
+            const newCycleBtn = document.getElementById('new-cycle-btn');
+            if (total === puzzles.length && puzzles.length > 0) {
+                newCycleBtn.classList.remove('hidden');
+            } else {
+                newCycleBtn.classList.add('hidden');
+            }
+        }
+
+        // ==========================================
+        // Home Screen Logic
+        // ==========================================
+        const homeView = document.getElementById('home-view');
+        const trainerView = document.getElementById('trainer-view');
+        const backHomeBtn = document.getElementById('back-home-btn');
+        const eloSlider = document.getElementById('elo-slider');
+        const eloDisplay = document.getElementById('elo-display');
+
+        // Elo to Skill Level approximation: 
+        eloSlider.addEventListener('input', (e) => {
+            const skill = parseInt(e.target.value);
+            const elo = 1100 + (skill * 100);
+            eloDisplay.textContent = `Elo ~${elo}`;
+        });
+
+        document.getElementById('mode-trainer').addEventListener('click', () => {
+            isPracticeMode = false;
+            homeView.classList.add('hidden-view');
+            trainerView.classList.remove('hidden-view');
+            backHomeBtn.classList.remove('hidden-view');
+            
+            // Re-render trainer UI
+            document.querySelector('.sidebar').style.display = 'block';
+            document.querySelector('.bottom-section').style.display = 'block';
+            document.querySelector('.timers').style.display = 'flex';
+            document.querySelector('.nav-buttons').style.display = 'flex';
+            document.getElementById('jump-input').parentElement.style.display = 'flex';
+            
+            // Set first book if none selected
+            if (!currentBook && window.CHESS_BOOKS_LIST && window.CHESS_BOOKS_LIST.length > 0) {
+                document.getElementById('book-select').value = window.CHESS_BOOKS_LIST[0].file;
+                document.getElementById('book-select').dispatchEvent(new Event('change'));
+            }
+        });
+
+        document.getElementById('mode-practice').addEventListener('click', () => {
+            isPracticeMode = true;
+            homeView.classList.add('hidden-view');
+            trainerView.classList.remove('hidden-view');
+            backHomeBtn.classList.remove('hidden-view');
+
+            // Hide trainer-specific UI elements
+            document.querySelector('.sidebar').style.display = 'none';
+            document.querySelector('.bottom-section').style.display = 'none';
+            document.querySelector('.timers').style.display = 'none';
+            document.querySelector('.nav-buttons').style.display = 'none';
+            document.getElementById('jump-input').parentElement.style.display = 'none';
+
+            // Setup Practice Match
+            const skill = parseInt(eloSlider.value);
+            isEngineEnabled = true;
+            document.getElementById('engine-toggle').checked = true;
+            initStockfishWorker(skill);
+
+            // Load starting position
+            engine.loadFEN('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+            moveHistory = [];
+            renderMoveHistory();
+            boardFlipped = false;
+            playerTurnToMove = true;
+            currentPuzzle = null; // Clear puzzle context
+            
+            document.getElementById('puzzle-number').textContent = 'Practice Match vs Stockfish';
+            document.getElementById('puzzle-category').textContent = 'Standard Starting Position';
+            document.getElementById('book-mode-badge').textContent = '🎮 Play vs AI';
+            document.getElementById('book-mode-badge').style.background = '#e91e63';
+            
+            const turnInd = document.getElementById('turn-indicator');
+            turnInd.textContent = 'White to move';
+            turnInd.className = 'turn-indicator white';
+            
+            setStatus(`Ready! You are White. Stockfish Skill Level: ${skill}`, 'info');
+            renderBoard(true);
+        });
+
+        backHomeBtn.addEventListener('click', () => {
+            if (isAutoPlaying) toggleAutoPlay();
+            isPracticeMode = false;
+            trainerView.classList.add('hidden-view');
+            backHomeBtn.classList.add('hidden-view');
+            homeView.classList.remove('hidden-view');
+        });
+
+    </script>
+</body>
+</html>
