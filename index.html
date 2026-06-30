@@ -5,16 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Woodpecker Method Chess Trainer</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600&family=Roboto+Mono:wght@400;500&display=swap');
+        
         :root {
             /* Light Theme (Default) */
-            --bg-main: #f8fafc;
-            --bg-panel: #ffffff;
-            --text-main: #1e293b;
+            --bg-main: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            --bg-panel: rgba(255, 255, 255, 0.7);
+            --text-main: #0f172a;
             --text-muted: #64748b;
-            --border-color: #e2e8f0;
-            --primary: #2563eb;
-            --primary-hover: #1d4ed8;
-            --success: #22c55e;
+            --border-color: rgba(255, 255, 255, 0.4);
+            --panel-border: rgba(255, 255, 255, 0.5);
+            --panel-shadow: 0 8px 32px rgba(31, 38, 135, 0.07);
+            --backdrop: blur(12px);
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --success: #10b981;
             --danger: #ef4444;
             --warning: #f59e0b;
             --board-light-brown: #f0d9b5;
@@ -31,12 +36,15 @@
         }
 
         [data-theme="dark"] {
-            --bg-main: #0f172a;
-            --bg-panel: #1e293b;
+            --bg-main: linear-gradient(135deg, #0f172a 0%, #1e1e2f 100%);
+            --bg-panel: rgba(15, 23, 42, 0.4);
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
-            --border-color: #334155;
-            --board-light-brown: #f0d9b5; /* keep board colors same or slightly muted */
+            --border-color: rgba(255, 255, 255, 0.08);
+            --panel-border: rgba(255, 255, 255, 0.1);
+            --panel-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+            --backdrop: blur(16px);
+            --board-light-brown: #f0d9b5; 
             --board-dark-brown: #b58863;
             --board-light-green: #eeeed2;
             --board-dark-green: #769656;
@@ -52,13 +60,13 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
         body {
-            background-color: var(--bg-main);
+            background: var(--bg-main);
             color: var(--text-main);
-            transition: background-color 0.3s, color 0.3s;
+            transition: color 0.3s;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -99,33 +107,52 @@
         select, button, input {
             background: var(--bg-panel);
             color: var(--text-main);
-            border: 1px solid var(--border-color);
-            padding: 8px 12px;
-            border-radius: 6px;
+            border: 1px solid var(--panel-border);
+            padding: 10px 16px;
+            border-radius: 8px;
             font-size: 14px;
+            font-weight: 500;
             cursor: pointer;
             outline: none;
-            transition: all 0.2s;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: var(--backdrop);
+            -webkit-backdrop-filter: var(--backdrop);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
         }
 
         button:hover {
-            background: var(--border-color);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            background: rgba(255,255,255,0.1);
+        }
+        
+        [data-theme="dark"] button:hover {
+            background: rgba(255,255,255,0.05);
         }
 
         button.primary {
-            background: var(--primary);
+            background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 100%);
             color: white;
-            border-color: var(--primary);
+            border: none;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
         }
 
         button.primary:hover {
-            background: var(--primary-hover);
+            background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+            transform: translateY(-2px);
         }
         
         button.success {
-            background: var(--success);
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             color: white;
-            border-color: var(--success);
+            border: none;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+        
+        button.success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
         }
 
         input[type="number"] {
@@ -172,11 +199,16 @@
             display: grid;
             grid-template-columns: repeat(8, 1fr);
             grid-template-rows: repeat(8, 1fr);
-            border: 2px solid var(--border-color);
-            border-radius: 4px;
+            border: 2px solid var(--panel-border);
+            border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.15);
             position: relative;
+            background: var(--bg-panel);
+        }
+        
+        [data-theme="dark"] .board {
+            box-shadow: 0 0 30px rgba(15, 23, 42, 0.8), 0 0 0 1px rgba(255,255,255,0.05);
         }
 
         .square {
@@ -186,7 +218,7 @@
             align-items: center;
             font-size: 50px;
             cursor: grab;
-            transition: background-color 0.1s;
+            transition: background-color 0.2s ease, filter 0.2s;
         }
 
         .square:active {
@@ -223,9 +255,22 @@
             height: 12.5%;
             background-size: cover;
             z-index: 10;
-            transition: transform 0.2s ease;
+            transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), filter 0.2s;
             cursor: pointer;
             -webkit-user-drag: none;
+        }
+        
+        .piece:hover {
+            transform: scale(1.1);
+            filter: drop-shadow(0 8px 12px rgba(0,0,0,0.3));
+            z-index: 20;
+        }
+        
+        .piece.dragging {
+            transform: scale(1.2) !important;
+            filter: drop-shadow(0 15px 25px rgba(0,0,0,0.4));
+            z-index: 100 !important;
+            transition: none;
         }
         
 .piece.wk { background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NSA0NSI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2U9IiMwMDAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLXdpZHRoPSIxLjUiPjxwYXRoIHN0cm9rZS1saW5lam9pbj0ibWl0ZXIiIGQ9Ik0yMi41IDExLjYzVjZNMjAgOGg1Ii8+PHBhdGggZmlsbD0iI2ZmZiIgc3Ryb2tlLWxpbmVjYXA9ImJ1dHQiIHN0cm9rZS1saW5lam9pbj0ibWl0ZXIiIGQ9Ik0yMi41IDI1czQuNS03LjUgMy0xMC41YzAgMC0xLTIuNS0zLTIuNXMtMyAyLjUtMyAyLjVjLTEuNSAzIDMgMTAuNSAzIDEwLjUiLz48cGF0aCBmaWxsPSIjZmZmIiBkPSJNMTEuNSAzN2M1LjUgMy41IDE1LjUgMy41IDIxIDB2LTdzOS00LjUgNi0xMC41Yy00LTYuNS0xMy41LTMuNS0xNiA0VjI3di0zLjVjLTMuNS03LjUtMTMtMTAuNS0xNi00LTMgNiA1IDEwIDUgMTB6Ii8+PHBhdGggZD0iTTExLjUgMzBjNS41LTMgMTUuNS0zIDIxIDBtLTIxIDMuNWM1LjUtMyAxNS41LTMgMjEgMG0tMjEgMy41YzUuNS0zIDE1LjUtMyAyMSAwIi8+PC9nPjwvc3ZnPg=='); }
@@ -246,13 +291,15 @@
         /* Panel Styles */
         .panel {
             background: var(--bg-panel);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
+            border: 1px solid var(--panel-border);
+            border-radius: 12px;
             padding: 24px;
             display: flex;
             flex-direction: column;
             gap: 20px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            box-shadow: var(--panel-shadow);
+            backdrop-filter: var(--backdrop);
+            -webkit-backdrop-filter: var(--backdrop);
         }
 
         .puzzle-header {
@@ -275,23 +322,41 @@
 
         .status-message {
             font-size: 18px;
-            font-weight: 500;
+            font-weight: 600;
             text-align: center;
-            padding: 10px;
-            border-radius: 6px;
-            min-height: 45px;
+            padding: 12px;
+            border-radius: 8px;
+            min-height: 50px;
             display: flex;
             align-items: center;
             justify-content: center;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
         }
-        .status-message.correct { background: rgba(34, 197, 94, 0.1); color: var(--success); }
-        .status-message.wrong { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
-        .status-message.info { background: rgba(37, 99, 235, 0.1); color: var(--primary); }
+        .status-message.correct { 
+            background: rgba(16, 185, 129, 0.15); 
+            color: var(--success); 
+            border-color: rgba(16, 185, 129, 0.3);
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.1);
+        }
+        .status-message.wrong { 
+            background: rgba(239, 68, 68, 0.15); 
+            color: var(--danger); 
+            border-color: rgba(239, 68, 68, 0.3);
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.1);
+        }
+        .status-message.info { 
+            background: rgba(59, 130, 246, 0.15); 
+            color: var(--primary); 
+            border-color: rgba(59, 130, 246, 0.3);
+        }
 
         .timers {
             display: flex;
             justify-content: space-between;
-            font-size: 16px;
+            font-size: 18px;
+            font-weight: 600;
+            font-family: 'Roboto Mono', monospace;
             font-variant-numeric: tabular-nums;
         }
 
@@ -329,17 +394,24 @@
         .progress-bar-bg {
             width: 100%;
             height: 12px;
-            background: var(--border-color);
+            background: rgba(0,0,0,0.05);
+            border: 1px solid var(--border-color);
             border-radius: 6px;
             overflow: hidden;
             margin-bottom: 8px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        [data-theme="dark"] .progress-bar-bg {
+            background: rgba(0,0,0,0.2);
         }
 
         .progress-bar-fill {
             height: 100%;
-            background: var(--success);
+            background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
             width: 0%;
-            transition: width 0.3s ease;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
         }
 
         .stats-grid {
@@ -351,10 +423,13 @@
 
         .stat-card {
             background: var(--bg-panel);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
+            border: 1px solid var(--panel-border);
+            border-radius: 12px;
             padding: 15px;
             text-align: center;
+            box-shadow: var(--panel-shadow);
+            backdrop-filter: var(--backdrop);
+            -webkit-backdrop-filter: var(--backdrop);
         }
 
         .stat-value {
@@ -445,15 +520,19 @@
 
         /* Move History Panel */
         .move-history {
-            font-family: 'Roboto Mono', 'Courier New', monospace;
-            font-size: 12px;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
             max-height: 150px;
             overflow-y: auto;
-            background: var(--bg-main);
+            background: rgba(0, 0, 0, 0.03);
             border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 8px 10px;
-            line-height: 1.7;
+            border-radius: 8px;
+            padding: 12px;
+            line-height: 1.8;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.05);
+        }
+        [data-theme="dark"] .move-history {
+            background: rgba(0, 0, 0, 0.2);
         }
         .move-history:empty::before {
             content: 'No moves yet';
@@ -575,6 +654,15 @@
             opacity: 0;
             pointer-events: none;
         }
+        
+        #trainer-view {
+            opacity: 1;
+            transition: opacity 0.5s ease;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
     </style>
     <script src="data/books_list.js"></script>
 </head>
@@ -689,12 +777,18 @@
                 <div id="engine-status" style="font-size: 11px; color: var(--text-muted);"></div>
             </div>
 
-            <div class="nav-buttons">
+            <div class="nav-buttons" id="study-controls">
                 <button id="prev-btn">← Prev</button>
                 <button id="show-solution-btn">Show Solution</button>
                 <button id="autoplay-btn" title="Toggle Auto-Play" class="primary">Auto-Play ⏵</button>
                 <button id="flip-btn" title="Flip Board">⇅ Flip</button>
                 <button id="next-btn">Next →</button>
+            </div>
+
+            <!-- Practice Mode Controls -->
+            <div id="practice-controls" class="nav-buttons" style="display: none;">
+                <button id="resign-btn" style="background: var(--danger); color: white; border-color: var(--danger);">Resign</button>
+                <button id="draw-btn" style="background: var(--warning); color: white; border-color: var(--warning);">Offer Draw</button>
             </div>
         </div>
     </div>
@@ -1610,7 +1704,8 @@
                     playerTurnToMove = false;
                     setStatus(`Free play: ${san}. Engine thinking...`, 'info');
                     stockfishWorker.postMessage('position fen ' + engine.getFEN());
-                    stockfishWorker.postMessage('go depth 10');
+                    // Use movetime instead of fixed depth so Skill Level has time to apply
+                    stockfishWorker.postMessage('go movetime 1000');
                 } else {
                     setStatus(`Free play: ${san}`, 'info');
                 }
@@ -2028,10 +2123,11 @@
             backHomeBtn.classList.remove('hidden-view');
             
             // Re-render trainer UI
-            document.querySelector('.sidebar').style.display = 'block';
-            document.querySelector('.bottom-section').style.display = 'block';
+            document.querySelector('.sidebar').style.display = 'flex';
+            document.querySelector('.bottom-section').style.display = 'flex';
             document.querySelector('.timers').style.display = 'flex';
-            document.querySelector('.nav-buttons').style.display = 'flex';
+            document.getElementById('study-controls').style.display = 'flex';
+            document.getElementById('practice-controls').style.display = 'none';
             document.getElementById('jump-input').parentElement.style.display = 'flex';
             
             // Set first book if none selected
@@ -2051,7 +2147,8 @@
             document.querySelector('.sidebar').style.display = 'none';
             document.querySelector('.bottom-section').style.display = 'none';
             document.querySelector('.timers').style.display = 'none';
-            document.querySelector('.nav-buttons').style.display = 'none';
+            document.getElementById('study-controls').style.display = 'none';
+            document.getElementById('practice-controls').style.display = 'flex';
             document.getElementById('jump-input').parentElement.style.display = 'none';
 
             // Setup Practice Match
@@ -2079,6 +2176,21 @@
             
             setStatus(`Ready! You are White. Stockfish Skill Level: ${skill}`, 'info');
             renderBoard(true);
+        });
+
+        // Practice mode buttons
+        document.getElementById('resign-btn').addEventListener('click', () => {
+            if (isPracticeMode && engine) {
+                setStatus('You resigned. Game over.', 'danger');
+                playerTurnToMove = false;
+                document.getElementById('puzzle-category').textContent = '0-1 (White Resigned)';
+            }
+        });
+
+        document.getElementById('draw-btn').addEventListener('click', () => {
+            if (isPracticeMode && engine) {
+                setStatus('Draw offer rejected by Stockfish!', 'warning');
+            }
         });
 
         backHomeBtn.addEventListener('click', () => {
