@@ -1435,6 +1435,28 @@
             document.addEventListener('mousemove', onDocumentMouseMove);
             document.addEventListener('mouseup', onDocumentMouseUp);
 
+            // Touch events support for mobile & touchscreen devices
+            const touchToMouse = (handler, isEnd = false) => (e) => {
+                const touch = isEnd ? e.changedTouches[0] : e.touches[0];
+                if (!touch) return;
+                handler({
+                    clientX: touch.clientX,
+                    clientY: touch.clientY,
+                    target: document.elementFromPoint(touch.clientX, touch.clientY)
+                });
+            };
+            boardEl.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                touchToMouse(onBoardMouseDown)(e);
+            }, { passive: false });
+            document.addEventListener('touchmove', (e) => {
+                if (isDragging) e.preventDefault();
+                touchToMouse(onDocumentMouseMove)(e);
+            }, { passive: false });
+            document.addEventListener('touchend', (e) => {
+                touchToMouse(onDocumentMouseUp, true)(e);
+            });
+
             // Timer interval
             sessionTimerInterval = setInterval(updateTimers, 100);
 
@@ -1521,30 +1543,37 @@
             return -1;
         }
 
+        function updateCoordinates() {
+            const ranksEl = document.getElementById('ranks');
+            const filesEl = document.getElementById('files');
+            if (ranksEl) {
+                const ranks = boardFlipped ? [1, 2, 3, 4, 5, 6, 7, 8] : [8, 7, 6, 5, 4, 3, 2, 1];
+                ranksEl.innerHTML = ranks.map(r => `<span>${r}</span>`).join('');
+            }
+            if (filesEl) {
+                const files = boardFlipped ? ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a'] : ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+                filesEl.innerHTML = files.map(f => `<span>${f}</span>`).join('');
+            }
+        }
+
         function createSquares() {
             boardEl.innerHTML = '';
-            for (let rank = 0; rank < 8; rank++) {
-                for (let file = 0; file < 8; file++) {
-                    const sq = rank * 8 + file;
-                    const isLight = (rank + file) % 2 === 0;
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const engineSq = boardFlipped ? ((7 - r) * 8 + (7 - c)) : (r * 8 + c);
+                    const isLight = (r + c) % 2 === 0;
                     const div = document.createElement('div');
                     div.className = `square ${isLight ? 'light' : 'dark'}`;
-                    div.dataset.sq = sq;
+                    div.dataset.sq = engineSq;
                     boardEl.appendChild(div);
                 }
             }
         }
 
         function renderBoard(fullRedraw = false) {
-            if (boardEl.children.length === 0) createSquares();
-            
-            document.querySelectorAll('.square').forEach(el => el.classList.remove('highlight-last'));
-            lastMoveSquares.forEach(sq => {
-                const el = document.querySelector(`.square[data-sq="${sq}"]`);
-                if(el) el.classList.add('highlight-last');
-            });
-
-            if (fullRedraw) {
+            if (fullRedraw || boardEl.children.length === 0) {
+                updateCoordinates();
+                createSquares();
                 document.querySelectorAll('.piece').forEach(el => el.remove());
                 pieceElements = {};
                 for (let sq = 0; sq < 64; sq++) {
@@ -1560,6 +1589,12 @@
                     }
                 }
             }
+            
+            document.querySelectorAll('.square').forEach(el => el.classList.remove('highlight-last'));
+            lastMoveSquares.forEach(sq => {
+                const el = document.querySelector(`.square[data-sq="${sq}"]`);
+                if(el) el.classList.add('highlight-last');
+            });
         }
         
         function highlightLegalMoves(moves) {
@@ -1724,7 +1759,6 @@
             }
 
             const uciMove = engine.moveToUCI(moveObj);
-            const expectedMove = currentPuzzle.solution[moveIndex];
             const isGame = currentPuzzle.type === 'game' || currentPuzzle.type === 'repertoire';
 
             if (uciMove === expectedMove) {
@@ -1972,9 +2006,6 @@
                     animatePieceMove(moveObj.from, moveObj.to, moveObj.promotion, moveObj.type);
                     lastMoveSquares = [moveObj.from, moveObj.to];
                     renderBoard(false);
-                    // Auto-flip on each move in game mode
-                    boardFlipped = (engine.turn === 'b');
-                    Object.values(pieceElements).forEach(el => el.style.transform = getSquareTransform(parseInt(el.dataset.sq)));
                 }
                 moveIndex++;
                 
