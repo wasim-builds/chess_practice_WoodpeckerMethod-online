@@ -5,23 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Woodpecker Method Chess Trainer</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600&family=Roboto+Mono:wght@400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600&family=Roboto+Mono:wght@400;500;600&display=swap');
         
         :root {
-            /* Light Theme (Default) */
-            --bg-main: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-            --bg-panel: rgba(255, 255, 255, 0.7);
+            /* Light Theme */
+            --bg-main: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            --bg-panel: rgba(255, 255, 255, 0.85);
+            --bg-panel-solid: #ffffff;
+            --bg-card: rgba(255, 255, 255, 0.65);
             --text-main: #0f172a;
             --text-muted: #64748b;
-            --border-color: rgba(255, 255, 255, 0.4);
-            --panel-border: rgba(255, 255, 255, 0.5);
-            --panel-shadow: 0 8px 32px rgba(31, 38, 135, 0.07);
-            --backdrop: blur(12px);
-            --primary: #3b82f6;
-            --primary-hover: #2563eb;
-            --success: #10b981;
-            --danger: #ef4444;
-            --warning: #f59e0b;
+            --border-color: rgba(0, 0, 0, 0.08);
+            --panel-border: rgba(0, 0, 0, 0.09);
+            --panel-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.07), 0 4px 12px -2px rgba(0, 0, 0, 0.03);
+            --backdrop: blur(16px);
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success: #059669;
+            --danger: #dc2626;
+            --warning: #d97706;
             --board-light-brown: #f0d9b5;
             --board-dark-brown: #b58863;
             --board-light-green: #eeeed2;
@@ -29,26 +31,32 @@
             
             --board-light: var(--board-light-brown);
             --board-dark: var(--board-dark-brown);
-            --highlight-last: rgba(255, 255, 0, 0.4);
-            --highlight-legal: rgba(0, 0, 0, 0.2);
-            --highlight-correct: rgba(34, 197, 94, 0.6);
+            --highlight-last: rgba(255, 235, 59, 0.45);
+            --highlight-legal: rgba(0, 0, 0, 0.22);
+            --highlight-correct: rgba(16, 185, 129, 0.6);
             --highlight-wrong: rgba(239, 68, 68, 0.6);
+            --selected-sq: #3b82f6;
         }
 
         [data-theme="dark"] {
-            --bg-main: linear-gradient(135deg, #0f172a 0%, #1e1e2f 100%);
-            --bg-panel: rgba(15, 23, 42, 0.4);
+            --bg-main: linear-gradient(135deg, #090d16 0%, #111827 50%, #1e1e2f 100%);
+            --bg-panel: rgba(17, 24, 39, 0.72);
+            --bg-panel-solid: #1f2937;
+            --bg-card: rgba(31, 41, 55, 0.55);
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
             --border-color: rgba(255, 255, 255, 0.08);
             --panel-border: rgba(255, 255, 255, 0.1);
-            --panel-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
-            --backdrop: blur(16px);
-            --board-light-brown: #f0d9b5; 
-            --board-dark-brown: #b58863;
-            --board-light-green: #eeeed2;
-            --board-dark-green: #769656;
-            --highlight-legal: rgba(255, 255, 255, 0.3);
+            --panel-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+            --backdrop: blur(20px);
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --highlight-last: rgba(255, 235, 59, 0.35);
+            --highlight-legal: rgba(255, 255, 255, 0.35);
+            --selected-sq: #60a5fa;
         }
 
         [data-board-color="green"] {
@@ -60,137 +68,220 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
 
         body {
             background: var(--bg-main);
             color: var(--text-main);
-            transition: color 0.3s;
+            transition: color 0.3s, background 0.3s;
             display: flex;
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
-            padding: 20px;
+            padding: 12px 18px 30px;
         }
 
-        .container {
-            max-width: 1000px;
+        /* Top Navigation Bar */
+        .top-nav {
             width: 100%;
-            display: grid;
-            grid-template-columns: auto 1fr;
-            gap: 30px;
-            margin-top: 20px;
-        }
-
-        header {
-            width: 100%;
-            max-width: 1000px;
+            max-width: 1060px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px 0 20px 0;
-            border-bottom: 1px solid var(--border-color);
+            gap: 14px;
+            padding: 10px 18px;
+            background: var(--bg-panel);
+            border: 1px solid var(--panel-border);
+            border-radius: 14px;
+            box-shadow: var(--panel-shadow);
+            backdrop-filter: var(--backdrop);
+            -webkit-backdrop-filter: var(--backdrop);
+            margin-bottom: 10px;
         }
 
-        h1 {
-            font-size: 24px;
-            font-weight: 700;
-        }
-
-        .controls-row {
+        .nav-left {
             display: flex;
-            gap: 15px;
             align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 17px;
+            font-weight: 800;
+            color: var(--text-main);
+            letter-spacing: -0.02em;
+            user-select: none;
+        }
+        .brand-icon {
+            font-size: 20px;
+        }
+
+        .book-picker-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .picker-icon {
+            font-size: 15px;
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
         }
 
         select, button, input {
-            background: var(--bg-panel);
+            background: var(--bg-card);
             color: var(--text-main);
             border: 1px solid var(--panel-border);
-            padding: 10px 16px;
+            padding: 7px 13px;
             border-radius: 8px;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 500;
             cursor: pointer;
             outline: none;
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             backdrop-filter: var(--backdrop);
             -webkit-backdrop-filter: var(--backdrop);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        select {
+            padding-right: 28px;
+            background-image: url('data:image/svg+xml;utf8,<svg fill="%2364748b" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+            background-repeat: no-repeat;
+            background-position: right 6px center;
+            background-size: 18px;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+
+        #book-select {
+            min-width: 240px;
+            max-width: 380px;
+            font-weight: 600;
         }
 
         button:hover {
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            background: rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.2);
+            border-color: rgba(0,0,0,0.15);
         }
-        
         [data-theme="dark"] button:hover {
-            background: rgba(255,255,255,0.05);
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(255,255,255,0.2);
         }
 
         button.primary {
-            background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 100%);
-            color: white;
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            color: #ffffff;
             border: none;
-            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
         }
-
         button.primary:hover {
-            background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%);
-            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
-            transform: translateY(-2px);
-        }
-        
-        button.success {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white;
-            border: none;
-            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
-        }
-        
-        button.success:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+            background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
+            transform: translateY(-1px);
         }
 
-        input[type="number"] {
-            width: 70px;
+        button.success {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            color: #ffffff;
+            border: none;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+        }
+        button.success:hover {
+            background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+            transform: translateY(-1px);
+        }
+
+        button.danger-outline {
+            background: transparent;
+            color: var(--danger);
+            border: 1px solid rgba(220, 38, 38, 0.4);
+        }
+        button.danger-outline:hover {
+            background: rgba(220, 38, 38, 0.08);
+            border-color: var(--danger);
+        }
+
+        /* App Subheader with Title */
+        .app-header {
+            width: 100%;
+            max-width: 1060px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 4px 4px 8px;
+        }
+
+        .book-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-main);
+            letter-spacing: -0.01em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Container Layout */
+        .container {
+            max-width: 1060px;
+            width: 100%;
+            display: grid;
+            grid-template-columns: auto minmax(320px, 420px);
+            gap: 26px;
+            align-items: start;
         }
 
         /* Chessboard Styles */
-        .board-container {
-            width: 480px;
-            max-width: 100vw;
-            position: relative;
-            user-select: none;
-            display: flex;
-        }
-        
-        .ranks-container, .files-container {
-            display: flex;
-            justify-content: space-around;
-            color: var(--text-muted);
-            font-size: 12px;
-            font-weight: bold;
-        }
-        
-        .ranks-container {
-            flex-direction: column;
-            padding-right: 8px;
-            height: 480px;
-        }
-        
-        .files-container {
-            width: 480px;
-            padding-top: 8px;
-            padding-left: 20px; /* Align with board */
-        }
-        
         .board-wrapper {
             display: flex;
             flex-direction: column;
+        }
+
+        .board-container {
+            display: flex;
+            position: relative;
+            user-select: none;
+        }
+        
+        .ranks-container {
+            display: grid;
+            grid-template-rows: repeat(8, 1fr);
+            align-items: center;
+            justify-items: center;
+            width: 24px;
+            height: 480px;
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 600;
+            font-family: 'Roboto Mono', monospace;
+            user-select: none;
+        }
+        
+        .files-container {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            align-items: center;
+            justify-items: center;
+            width: 480px;
+            height: 24px;
+            margin-left: 24px; /* Perfectly matches ranks-container width! */
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 600;
+            font-family: 'Roboto Mono', monospace;
+            user-select: none;
         }
 
         .board {
@@ -202,13 +293,13 @@
             border: 2px solid var(--panel-border);
             border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04);
             position: relative;
-            background: var(--bg-panel);
+            background: var(--board-light);
         }
         
         [data-theme="dark"] .board {
-            box-shadow: 0 0 30px rgba(15, 23, 42, 0.8), 0 0 0 1px rgba(255,255,255,0.05);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255,255,255,0.06);
         }
 
         .square {
@@ -218,7 +309,7 @@
             align-items: center;
             font-size: 50px;
             cursor: grab;
-            transition: background-color 0.2s ease, filter 0.2s;
+            transition: background-color 0.15s ease;
         }
 
         .square:active {
@@ -231,24 +322,29 @@
         .square.highlight-last { background-color: var(--highlight-last) !important; }
         .square.highlight-correct { background-color: var(--highlight-correct) !important; }
         .square.highlight-wrong { background-color: var(--highlight-wrong) !important; }
+        .square.selected { 
+            box-shadow: inset 0 0 0 3px var(--selected-sq), inset 0 0 12px rgba(59, 130, 246, 0.35) !important; 
+        }
 
         .square.legal-move::after {
             content: '';
             position: absolute;
-            width: 25%;
-            height: 25%;
+            width: 26%;
+            height: 26%;
             background-color: var(--highlight-legal);
             border-radius: 50%;
+            pointer-events: none;
         }
 
         .square.legal-move.capture::after {
-            width: 80%;
-            height: 80%;
+            width: 82%;
+            height: 82%;
             background-color: transparent;
-            border: 5px solid var(--highlight-legal);
+            border: 4.5px solid var(--highlight-legal);
+            border-radius: 50%;
+            pointer-events: none;
         }
 
-        
         .piece {
             position: absolute;
             top: 0;
@@ -263,14 +359,13 @@
         }
         
         .piece:hover {
-            transform: scale(1.1);
-            filter: drop-shadow(0 8px 12px rgba(0,0,0,0.3));
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.25));
             z-index: 20;
         }
         
         .piece.dragging {
-            transform: scale(1.2) !important;
-            filter: drop-shadow(0 15px 25px rgba(0,0,0,0.4));
+            transform: scale(1.15) !important;
+            filter: drop-shadow(0 14px 24px rgba(0,0,0,0.4));
             z-index: 100 !important;
             transition: none;
         }
@@ -283,270 +378,390 @@
 .piece.wp { background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NSA0NSI+PHBhdGggZmlsbD0iI2ZmZiIgc3Ryb2tlPSIjMDAwIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS13aWR0aD0iMS41IiBkPSJNMjIuNSA5Yy0yLjIxIDAtNCAxLjc5LTQgNCAwIC44OS4yOSAxLjcxLjc4IDIuMzhDMTcuMzMgMTYuNSAxNiAxOC41OSAxNiAyMWMwIDIuMDMuOTQgMy44NCAyLjQxIDUuMDMtMyAxLjA2LTcuNDEgNS41NS03LjQxIDEzLjQ3aDIzYzAtNy45Mi00LjQxLTEyLjQxLTcuNDEtMTMuNDcgMS40Ny0xLjE5IDIuNDEtMyAyLjQxLTUuMDMgMC0yLjQxLTEuMzMtNC41LTMuMjgtNS42Mi40OS0uNjcuNzgtMS40OS43OC0yLjM4IDAtMi4yMS0xLjc5LTQtNC00eiIvPjwvc3ZnPg=='); }
 .piece.bk { background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NSA0NSI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2U9IiMwMDAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLXdpZHRoPSIxLjUiPjxwYXRoIHN0cm9rZS1saW5lam9pbj0ibWl0ZXIiIGQ9Ik0yMi41IDExLjZWNiIvPjxwYXRoIGZpbGw9IiMwMDAiIHN0cm9rZS1saW5lY2FwPSJidXR0IiBzdHJva2UtbGluZWpvaW49Im1pdGVyIiBkPSJNMjIuNSAyNXM0LjUtNy41IDMtMTAuNWMwIDAtMS0yLjUtMy0yLjVzLTMgMi41LTMgMi41Yy0xLjUgMyAzIDEwLjUgMyAxMC41Ii8+PHBhdGggZmlsbD0iIzAwMCIgZD0iTTExLjUgMzdhMjIuMyAyMi4zIDAgMCAwIDIxIDB2LTdzOS00LjUgNi0xMC41Yy00LTYuNS0xMy41LTMuNS0xNiA0VjI3di0zLjVjLTMuNS03LjUtMTMtMTAuNS0xNi00LTMgNiA1IDEwIDUgMTB6Ii8+PHBhdGggc3Ryb2tlLWxpbmVqb2luPSJtaXRlciIgZD0iTTIwIDhoNSIvPjxwYXRoIHN0cm9rZT0iI2VjZWNlYyIgZD0iTTMyIDI5LjVzOC41LTQgNi05LjdDMzQuMSAxNCAyNSAxOCAyMi41IDI0LjZ2Mi4xLTIuMUMyMCAxOCA5LjkgMTQgNyAxOS45Yy0yLjUgNS42IDQuOCA5IDQuOCA5Ii8+PHBhdGggc3Ryb2tlPSIjZWNlY2VjIiBkPSJNMTEuNSAzMGM1LjUtMyAxNS41LTMgMjEgMG0tMjEgMy41YzUuNS0zIDE1LjUtMyAyMSAwbS0yMSAzLjVjNS41LTMgMTUuNS0zIDIxIDAiLz48L2c+PC9zdmc+'); }
 .piece.bq { background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NSA0NSI+PGcgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2U9IiMwMDAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLXdpZHRoPSIxLjUiPjxnIHN0cm9rZT0ibm9uZSI+PGNpcmNsZSBjeD0iNiIgY3k9IjEyIiByPSIyLjc1Ii8+PGNpcmNsZSBjeD0iMTQiIGN5PSI5IiByPSIyLjc1Ii8+PGNpcmNsZSBjeD0iMjIuNSIgY3k9IjgiIHI9IjIuNzUiLz48Y2lyY2xlIGN4PSIzMSIgY3k9IjkiIHI9IjIuNzUiLz48Y2lyY2xlIGN4PSIzOSIgY3k9IjEyIiByPSIyLjc1Ii8+PC9nPjxwYXRoIHN0cm9rZS1saW5lY2FwPSJidXR0IiBkPSJNOSAyNmM4LjUtMS41IDIxLTEuNSAyNyAwbDIuNS0xMi41TDMxIDI1bC0uMy0xNC4xLTUuMiAxMy42LTMtMTQuNS0zIDE0LjUtNS4yLTEzLjZMMTQgMjUgNi41IDEzLjV6Ii8+PHBhdGggc3Ryb2tlLWxpbmVjYXA9ImJ1dHQiIGQ9Ik05IDI2YzAgMiAxLjUgMiAyLjUgNCAxIDEuNSAxIDEgLjUgMy41LTEuNSAxLTEuNSAyLjUtMS41IDIuNS0xLjUgMS41LjUgMi41LjUgMi41IDYuNSAxIDE2LjUgMSAyMyAwIDAgMCAxLjUtMSAwLTIuNSAwIDAgLjUtMS41LTEtMi41LS41LTIuNS0uNS0yIC41LTMuNSAxLTIgMi41LTIgMi41LTQtOC41LTEuNS0xOC41LTEuNS0yNyAweiIvPjxwYXRoIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJidXR0IiBkPSJNMTEgMzguNWEzNSAzNSAxIDAgMCAyMyAwIi8+PHBhdGggZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZWNlY2VjIiBkPSJNMTEgMjlhMzUgMzUgMSAwIDEgMjMgMG0tMjEuNSAyLjVoMjBtLTIxIDNhMzUgMzUgMSAwIDAgMjIgMG0tMjMgM2EzNSAzNSAxIDAgMCAyNCAwIi8+PC9nPjwvc3ZnPg=='); }
-.piece.br { background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NSA0NSI+PGcgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2U9IiMwMDAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLXdpZHRoPSIxLjUiPjxwYXRoIHN0cm9rZS1saW5lY2FwPSJidXR0IiBkPSJNOSAzOWgyN3YtM0g5em0zLjUtNyAxLjUtMi41aDE3bDEuNSAyLjV6bS0uNSA0di00aDIxdjR6Ii8+PHBhdGggc3Ryb2tlLWxpbmVjYXA9ImJ1dHQiIHN0cm9rZS1saW5lam9pbj0ibWl0ZXIiIGQ9Ik0xNCAyOS41di0xM2gxN3YxM3oiLz48cGF0aCBzdHJva2UtbGluZWNhcD0iYnV0dCIgZD0iTTE0IDE2LjUgMTEgMTRoMjNsLTMgMi41ek0xMSAxNFY5aDR2Mmg1VjloNXYyaDVWOWg0djV6Ii8+PHBhdGggZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZWNlY2VjIiBzdHJva2UtbGluZWpvaW49Im1pdGVyIiBzdHJva2Utd2lkdGg9IjEiIGQ9Ik0xMiAzNS41aDIxbS0yMC00aDE5bS0xOC0yaDE3bS0xNy0xM2gxN00xMSAxNGgyMyIvPjwvZz48L3N2Zz4='); }
+.piece.br { background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NSA0NSI+PGcgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2U9IiMwMDAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLXdpZHRoPSIxLjUiPjxwYXRoIHN0cm9rZS1saW5lY2FwPSJidXR0IiBkPSJNOSAzOWgyN3YtM0g5em0zLjUtNyAxLjUtMi41aDE3bDEuNSAyLjV6bS0uNSA0di00aDIxdjR6Ii8+PHBhdGggc3Ryb2tlLWxpbmVjYXA9ImJ1dHQiIHN0cm9rZS1saW5lam9pbj0ibWl0ZXIiIGQ9Ik0xNCAyOS41di0xM2gxN3YxM3oiLz48cGF0aCBzdHJva2UtbGluZWNhcD0iYnV0dCIgZD0iTTE0IDE2LjUgMTEgMTRoMjNsLTMgMi41ek0xMSAxNFY5aDR2Mmg1VjloNXYyaDVWOWg0djV6Ii8+PHBhdGggZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZWNlY2VjIiBzdHJva2UtbGluZWpvaW49Im1pdGVyIiBkPSJNMTEgMTRoMjMiLz48L2c+PC9zdmc+'); }
 .piece.bb { background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NSA0NSI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2U9IiMwMDAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLXdpZHRoPSIxLjUiPjxnIGZpbGw9IiMwMDAiIHN0cm9rZS1saW5lY2FwPSJidXR0Ij48cGF0aCBkPSJNOSAzNmMzLjQtMSAxMC4xLjQgMTMuNS0yIDMuNCAyLjQgMTAuMSAxIDEzLjUgMiAwIDAgMS42LjUgMyAyLS43IDEtMS42IDEtMyAuNS0zLjQtMS0xMC4xLjUtMTMuNS0xLTMuNCAxLjUtMTAuMSAwLTEzLjUgMS0xLjQuNS0yLjMuNS0zLS41IDEuNC0yIDMtMiAzLTJ6Ii8+PHBhdGggZD0iTTE1IDMyYzIuNSAyLjUgMTIuNSAyLjUgMTUgMCAuNS0xLjUgMC0yIDAtMiAwLTIuNS0yLjUtNC0yLjUtNCA1LjUtMS41IDYtMTEuNS01LTE1LjUtMTEgNC0xMC41IDE0LTUgMTUuNSAwIDAtMi41IDEuNS0yLjUgNCAwIDAtLjUuNSAwIDJ6Ii8+PHBhdGggZD0iTTI1IDhhMi41IDIuNSAwIDEgMS01IDAgMi41IDIuNSAwIDEgMSA1IDB6Ii8+PC9nPjxwYXRoIHN0cm9rZT0iI2VjZWNlYyIgc3Ryb2tlLWxpbmVqb2luPSJtaXRlciIgZD0iTTE3LjUgMjZoMTBNMTUgMzBoMTVtLTcuNS0xNC41djVNMjAgMThoNSIvPjwvZz48L3N2Zz4='); }
 .piece.bn { background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NSA0NSI+PGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiBzdHJva2U9IiMwMDAiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgc3Ryb2tlLXdpZHRoPSIxLjUiPjxwYXRoIGZpbGw9IiMwMDAiIGQ9Ik0yMiAxMGMxMC41IDEgMTYuNSA4IDE2IDI5SDE1YzAtOSAxMC02LjUgOC0yMSIvPjxwYXRoIGZpbGw9IiMwMDAiIGQ9Ik0yNCAxOGMuMzggMi45MS01LjU1IDcuMzctOCA5LTMgMi0yLjgyIDQuMzQtNSA0LTEuMDQtLjk0IDEuNDEtMy4wNCAwLTMtMSAwIC4xOSAxLjIzLTEgMi0xIDAtNCAxLTQtNCAwLTIgNi0xMiA2LTEyczEuODktMS45IDItMy41Yy0uNzMtMS0uNS0yLS41LTMgMS0xIDMgMi41IDMgMi41aDJzLjc4LTIgMi41LTNjMSAwIDEgMyAxIDMiLz48cGF0aCBmaWxsPSIjZWNlY2VjIiBzdHJva2U9IiNlY2VjZWMiIGQ9Ik05LjUgMjUuNWEuNS41IDAgMSAxLTEgMCAuNS41IDAgMSAxIDEgMG01LjQzLTkuNzVhLjUgMS41IDMwIDEgMS0uODYtLjUuNSAxLjUgMzAgMSAxIC44Ni41Ii8+PHBhdGggZmlsbD0iI2VjZWNlYyIgc3Ryb2tlPSJub25lIiBkPSJtMjQuNTUgMTAuNC0uNDUgMS40NS41LjE1YzMuMTUgMSA1LjY1IDIuNDkgNy45IDYuNzVTMzUuNzUgMjkuMDYgMzUuMjUgMzlsLS4wNS41aDIuMjVsLjA1LS41Yy41LTEwLjA2LS44OC0xNi44NS0zLjI1LTIxLjM0cy01Ljc5LTYuNjQtOS4xOS03LjE2eiIvPjwvZz48L3N2Zz4='); }
 .piece.bp { background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0NSA0NSI+PHBhdGggc3Ryb2tlPSIjMDAwIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS13aWR0aD0iMS41IiBkPSJNMjIuNSA5YTQgNCAwIDAgMC0zLjIyIDYuMzggNi40OCA2LjQ4IDAgMCAwLS44NyAxMC42NWMtMyAxLjA2LTcuNDEgNS41NS03LjQxIDEzLjQ3aDIzYzAtNy45Mi00LjQxLTEyLjQxLTcuNDEtMTMuNDdhNi40NiA2LjQ2IDAgMCAwLS44Ny0xMC42NUE0LjAxIDQuMDEgMCAwIDAgMjIuNSA5eiIvPjwvc3ZnPg=='); }
 
-
-        
         /* Panel Styles */
         .panel {
             background: var(--bg-panel);
             border: 1px solid var(--panel-border);
-            border-radius: 12px;
-            padding: 24px;
+            border-radius: 14px;
+            padding: 22px;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 15px;
+            box-shadow: var(--panel-shadow);
+            backdrop-filter: var(--backdrop);
+            -webkit-backdrop-filter: var(--backdrop);
+            min-width: 320px;
+        }
+
+        .puzzle-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .puzzle-title {
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: var(--text-main);
+        }
+
+        .puzzle-submeta {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 3px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .badge {
+            background: var(--primary);
+            color: #ffffff;
+            border-radius: 4px;
+            padding: 2px 7px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+
+        .turn-indicator {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+        .turn-indicator.white { 
+            background: #ffffff; 
+            color: #0f172a; 
+            border: 1px solid rgba(0,0,0,0.18); 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06); 
+        }
+        .turn-indicator.black { 
+            background: #0f172a; 
+            color: #f8fafc; 
+            border: 1px solid rgba(255,255,255,0.15); 
+        }
+
+        /* Timers Strip */
+        .timers-strip {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .timer-card {
+            background: var(--bg-card);
+            border: 1px solid var(--panel-border);
+            border-radius: 10px;
+            padding: 8px 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .timer-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 2px;
+        }
+
+        .timer-digits {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 18px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            color: var(--text-main);
+        }
+
+        /* Status Message */
+        .status-message {
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+            padding: 10px 14px;
+            border-radius: 10px;
+            min-height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.25s ease;
+            border: 1px solid transparent;
+            background: var(--bg-card);
+        }
+        .status-message.correct { 
+            background: rgba(16, 185, 129, 0.12); 
+            color: var(--success); 
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+        .status-message.wrong { 
+            background: rgba(239, 68, 68, 0.12); 
+            color: var(--danger); 
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+        .status-message.info { 
+            background: rgba(59, 130, 246, 0.1); 
+            color: var(--primary); 
+            border-color: rgba(59, 130, 246, 0.25);
+        }
+        .status-message.warning { 
+            background: rgba(245, 158, 11, 0.12); 
+            color: var(--warning); 
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        /* Move History */
+        .move-history-container {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .history-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            padding-left: 2px;
+        }
+        .move-history {
+            font-family: 'Roboto Mono', 'Inter', monospace;
+            font-size: 13px;
+            max-height: 120px;
+            min-height: 44px;
+            overflow-y: auto;
+            background: var(--bg-card);
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            line-height: 1.8;
+            scrollbar-width: thin;
+        }
+        .move-history:empty::before {
+            content: 'No moves yet';
+            color: var(--text-muted);
+            font-style: italic;
+            font-size: 12px;
+        }
+        .move-pair { display: flex; gap: 6px; align-items: baseline; }
+        .move-num { color: var(--text-muted); min-width: 24px; font-size: 11px; font-weight: 500; }
+        .move-w { min-width: 55px; font-weight: 600; color: var(--text-main); }
+        .move-b { color: var(--text-muted); font-weight: 500; }
+        .move-history .last-w .move-w,
+        .move-history .last-b .move-b { color: var(--primary); font-weight: 700; }
+
+        /* Navigation Buttons */
+        .nav-buttons {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
+        }
+
+        .nav-buttons button {
+            padding: 9px 4px;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        /* Utility Box */
+        .panel-utility-box {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding-top: 6px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .utility-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .cycle-indicator {
+            display: flex;
+            align-items: baseline;
+            gap: 5px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .cycle-label { color: var(--text-muted); font-weight: 500; }
+        .cycle-number { color: var(--primary); }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 6px;
+        }
+
+        .jump-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .jump-group input {
+            width: 58px;
+            padding: 5px 8px;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .engine-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text-muted);
+            padding: 2px 0;
+        }
+
+        .engine-toggle-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            user-select: none;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        .engine-status-text {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        /* Bottom Section & Progress */
+        .bottom-section {
+            width: 100%;
+            max-width: 1060px;
+            margin-top: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .progress-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--panel-border);
+            border-radius: 12px;
+            padding: 14px 18px;
             box-shadow: var(--panel-shadow);
             backdrop-filter: var(--backdrop);
             -webkit-backdrop-filter: var(--backdrop);
         }
 
-        .puzzle-header {
+        .progress-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 20px;
-            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 13px;
         }
-
-        .turn-indicator {
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: 600;
-            display: inline-block;
-        }
-        .turn-indicator.white { background: #fff; color: #000; border: 1px solid #ccc; }
-        .turn-indicator.black { background: #000; color: #fff; }
-
-        .status-message {
-            font-size: 18px;
-            font-weight: 600;
-            text-align: center;
-            padding: 12px;
-            border-radius: 8px;
-            min-height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-            border: 1px solid transparent;
-        }
-        .status-message.correct { 
-            background: rgba(16, 185, 129, 0.15); 
-            color: var(--success); 
-            border-color: rgba(16, 185, 129, 0.3);
-            box-shadow: 0 0 20px rgba(16, 185, 129, 0.1);
-        }
-        .status-message.wrong { 
-            background: rgba(239, 68, 68, 0.15); 
-            color: var(--danger); 
-            border-color: rgba(239, 68, 68, 0.3);
-            box-shadow: 0 0 20px rgba(239, 68, 68, 0.1);
-        }
-        .status-message.info { 
-            background: rgba(59, 130, 246, 0.15); 
-            color: var(--primary); 
-            border-color: rgba(59, 130, 246, 0.3);
-        }
-
-        .timers {
-            display: flex;
-            justify-content: space-between;
-            font-size: 18px;
-            font-weight: 600;
-            font-family: 'Roboto Mono', monospace;
-            font-variant-numeric: tabular-nums;
-        }
-
-        .timer-box {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .timer-label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
-
-        .nav-buttons {
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-        }
-
-        .nav-buttons button {
-            flex: 1;
-        }
-
-        /* Bottom Section */
-        .bottom-section {
-            width: 100%;
-            max-width: 1000px;
-            margin-top: 30px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .progress-container {
-            width: 100%;
-        }
+        .progress-title { font-weight: 700; color: var(--text-main); }
+        .progress-counter { font-family: 'Roboto Mono', monospace; font-weight: 600; color: var(--text-muted); }
 
         .progress-bar-bg {
             width: 100%;
-            height: 12px;
-            background: rgba(0,0,0,0.05);
+            height: 9px;
+            background: rgba(0,0,0,0.06);
             border: 1px solid var(--border-color);
-            border-radius: 6px;
+            border-radius: 5px;
             overflow: hidden;
-            margin-bottom: 8px;
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
         }
-        
         [data-theme="dark"] .progress-bar-bg {
-            background: rgba(0,0,0,0.2);
+            background: rgba(0,0,0,0.3);
         }
 
         .progress-bar-fill {
             height: 100%;
             background: linear-gradient(90deg, #10b981 0%, #34d399 100%);
             width: 0%;
-            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
         }
 
         .stat-card {
             background: var(--bg-panel);
             border: 1px solid var(--panel-border);
             border-radius: 12px;
-            padding: 15px;
+            padding: 14px 12px;
             text-align: center;
             box-shadow: var(--panel-shadow);
             backdrop-filter: var(--backdrop);
             -webkit-backdrop-filter: var(--backdrop);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
         }
 
         .stat-value {
-            font-size: 24px;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 22px;
             font-weight: 700;
-            color: var(--primary);
-            margin-top: 5px;
-        }
-
-        .import-section textarea {
-            width: 100%;
-            height: 100px;
-            background: var(--bg-main);
             color: var(--text-main);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 10px;
-            margin-bottom: 10px;
-            font-family: monospace;
-            resize: vertical;
         }
 
-        .hidden { display: none !important; }
+        .stat-solved .stat-value { color: var(--success); }
+        .stat-hints .stat-value { color: var(--warning); }
+        .stat-failed .stat-value { color: var(--danger); }
+        .stat-time .stat-value { font-size: 17px; }
 
-        @media (max-width: 800px) {
-            .container {
-                grid-template-columns: 1fr;
-                justify-items: center;
-            }
-            .board-container {
-                margin: 0 auto;
-            }
-            .panel {
-                width: 100%;
-                max-width: 480px;
-            }
-        }
-        @media (max-width: 520px) {
-            .board {
-                width: 320px;
-                height: 320px;
-            }
-            .board-container {
-                width: 320px;
-            }
-            .ranks-container {
-                height: 320px;
-            }
-            .files-container {
-                width: 320px;
-            }
-            .square {
-                font-size: 35px;
-            }
-        }
-
-        /* Sidebar / top controls bar */
-        .sidebar {
-            width: 100%;
-            max-width: 1000px;
+        .bottom-actions-row {
             display: flex;
-            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 4px;
+        }
+
+        .shortcuts-legend {
+            display: flex;
+            justify-content: center;
             align-items: center;
             gap: 12px;
-            padding: 10px 0 14px 0;
-            border-bottom: 1px solid var(--border-color);
-            margin-bottom: 0;
-        }
-        .sidebar h2 {
-            font-size: 18px;
-            font-weight: 700;
-            margin-right: 8px;
-        }
-        .setting-group {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .setting-group label {
-            font-size: 13px;
+            flex-wrap: wrap;
+            font-size: 12px;
             color: var(--text-muted);
-            white-space: nowrap;
+            padding: 8px 12px;
         }
-        .setting-group select {
-            min-width: 220px;
-            max-width: 320px;
+        .shortcuts-legend kbd {
+            background: var(--bg-card);
+            border: 1px solid var(--panel-border);
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-main);
         }
-
-        /* Move History Panel */
-        .move-history {
-            font-family: 'Inter', sans-serif;
-            font-size: 13px;
-            max-height: 150px;
-            overflow-y: auto;
-            background: rgba(0, 0, 0, 0.03);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px;
-            line-height: 1.8;
-            box-shadow: inset 0 2px 10px rgba(0,0,0,0.05);
-        }
-        [data-theme="dark"] .move-history {
-            background: rgba(0, 0, 0, 0.2);
-        }
-        .move-history:empty::before {
-            content: 'No moves yet';
-            color: var(--text-muted);
-            font-style: italic;
-        }
-        .move-pair { display: flex; gap: 4px; align-items: baseline; }
-        .move-num { color: var(--text-muted); min-width: 26px; font-size: 11px; }
-        .move-w { min-width: 58px; font-weight: 600; }
-        .move-b { color: var(--text-muted); }
-        .move-history .last-w .move-w,
-        .move-history .last-b .move-b { color: var(--primary); }
 
         /* Home View Styles */
         #home-view {
@@ -556,114 +771,168 @@
             justify-content: center;
             min-height: 100vh;
             width: 100vw;
-            background: linear-gradient(135deg, #121212 0%, #1e1e2f 100%);
-            position: absolute;
+            background: linear-gradient(135deg, #090d16 0%, #111827 50%, #1e1e2f 100%);
+            position: fixed;
             top: 0;
             left: 0;
             z-index: 100;
-            transition: opacity 0.4s ease;
+            padding: 20px;
+            transition: opacity 0.35s ease;
+        }
+
+        .home-hero {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+
+        .home-icon {
+            font-size: 52px;
+            margin-bottom: 8px;
         }
 
         .home-title {
-            font-size: 48px;
+            font-size: 44px;
             font-weight: 800;
-            margin-bottom: 40px;
-            background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%);
+            letter-spacing: -0.03em;
+            background: linear-gradient(to right, #38bdf8 0%, #818cf8 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            text-shadow: 0px 4px 10px rgba(0,0,0,0.3);
+            margin-bottom: 8px;
+        }
+
+        .home-subtitle {
+            color: #94a3b8;
+            font-size: 15px;
+            max-width: 520px;
+            line-height: 1.5;
         }
 
         .mode-cards {
             display: flex;
-            gap: 30px;
+            gap: 24px;
             flex-wrap: wrap;
             justify-content: center;
+            max-width: 760px;
+            width: 100%;
         }
 
         .glass-card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            padding: 30px;
-            width: 300px;
+            border-radius: 18px;
+            padding: 28px 24px;
+            flex: 1;
+            min-width: 280px;
+            max-width: 350px;
             text-align: center;
             cursor: pointer;
-            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .glass-card:hover {
-            transform: translateY(-10px) scale(1.02);
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-6px);
+            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5);
+            border-color: rgba(56, 189, 248, 0.4);
+            background: rgba(255, 255, 255, 0.07);
+        }
+
+        .card-icon {
+            font-size: 38px;
+            margin-bottom: 12px;
         }
 
         .glass-card h2 {
-            margin-bottom: 15px;
-            font-size: 24px;
-            color: #fff;
+            font-size: 22px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 8px;
         }
 
         .glass-card p {
-            color: #aaa;
-            font-size: 14px;
-            line-height: 1.5;
-            margin-bottom: 20px;
+            color: #94a3b8;
+            font-size: 13px;
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+
+        .card-badge {
+            background: rgba(56, 189, 248, 0.15);
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: auto;
         }
 
         .elo-slider-container {
-            margin-top: 15px;
+            width: 100%;
+            margin-top: auto;
             text-align: left;
-            padding: 10px;
-            background: rgba(0,0,0,0.2);
-            border-radius: 8px;
+            padding: 10px 14px;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
         }
 
         .elo-slider-container label {
             display: flex;
             justify-content: space-between;
-            font-size: 13px;
-            color: #ccc;
-            margin-bottom: 5px;
+            font-size: 12px;
+            color: #cbd5e1;
+            margin-bottom: 6px;
+            font-weight: 600;
         }
 
         input[type=range] {
             width: 100%;
-            accent-color: #4facfe;
-        }
-
-        #back-home-btn {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 50;
-            background: rgba(255,255,255,0.1);
-            color: white;
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 8px;
-            padding: 8px 16px;
+            accent-color: #38bdf8;
             cursor: pointer;
-            backdrop-filter: blur(5px);
-            transition: background 0.2s;
         }
-        #back-home-btn:hover { background: rgba(255,255,255,0.2); }
 
-        .hidden-view {
-            display: none !important;
-            opacity: 0;
-            pointer-events: none;
-        }
-        
+        .hidden { display: none !important; }
+        .hidden-view { display: none !important; }
+
         #trainer-view {
-            opacity: 1;
-            transition: opacity 0.5s ease;
             width: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
+        }
+
+        /* Responsive Breakpoints */
+        @media (max-width: 880px) {
+            .container {
+                grid-template-columns: 1fr;
+                justify-items: center;
+            }
+            .panel {
+                width: 100%;
+                max-width: 504px;
+            }
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 540px) {
+            body { padding: 8px 10px 24px; }
+            .top-nav { flex-direction: column; align-items: stretch; gap: 10px; }
+            .nav-left, .nav-right { justify-content: space-between; }
+            #book-select { min-width: 100%; }
+            .board-container { width: 336px; }
+            .board { width: 312px; height: 312px; }
+            .ranks-container { width: 24px; height: 312px; font-size: 11px; }
+            .files-container { width: 312px; height: 20px; font-size: 11px; }
+            .panel { max-width: 336px; padding: 16px; }
+            .nav-buttons { grid-template-columns: repeat(3, 1fr); }
+            .stats-grid { grid-template-columns: 1fr; }
         }
     </style>
     <script src="data/books_list.js"></script>
@@ -672,22 +941,28 @@
     
     <!-- HOME VIEW -->
     <div id="home-view">
-        <div class="home-title">Woodpecker Chess</div>
+        <div class="home-hero">
+            <div class="home-icon">🦅</div>
+            <h1 class="home-title">Woodpecker Chess</h1>
+            <p class="home-subtitle">Master tactical pattern recognition with spaced repetition & Stockfish sparring</p>
+        </div>
         <div class="mode-cards">
             
             <div class="glass-card" id="mode-trainer">
-                <h2>🧩 Training Mode</h2>
-                <p>Follow the Woodpecker method, track your cycle times, and build pattern recognition.</p>
-                <div style="font-size:40px; margin-top:20px;">📚</div>
+                <div class="card-icon">🧩</div>
+                <h2>Training Mode</h2>
+                <p>Follow the Woodpecker method across 9 classic books, track your cycle times, and build lightning-fast tactical intuition.</p>
+                <div class="card-badge">12,790+ Puzzles</div>
             </div>
 
             <div class="glass-card" id="mode-practice">
-                <h2>🤖 Play vs Computer</h2>
-                <p>Play a standard game from the starting position against Stockfish.</p>
+                <div class="card-icon">🤖</div>
+                <h2>Play vs Computer</h2>
+                <p>Play a standard game from the starting position against Stockfish with customizable difficulty.</p>
                 <div class="elo-slider-container" onclick="event.stopPropagation()">
                     <label>
-                        <span>Difficulty</span>
-                        <span id="elo-display">Elo 1500</span>
+                        <span>Opponent Strength</span>
+                        <span id="elo-display">Elo ~1500</span>
                     </label>
                     <input type="range" id="elo-slider" min="1" max="20" value="10">
                 </div>
@@ -697,140 +972,166 @@
     </div>
 
     <!-- TRAINER/GAME VIEW -->
-    <button id="back-home-btn" class="hidden-view">🏠 Home</button>
     <div id="trainer-view" class="hidden-view">
-    <div class="sidebar">
-        <h2>Woodpecker Trainer</h2>
         
-        <div class="setting-group">
-            <label for="book-select">Select Book:</label>
-            <select id="book-select" style="width:100%; padding:5px; margin-top:5px; background:var(--bg-panel); color:var(--text-color); border:1px solid #555; border-radius:4px;"></select>
+        <!-- Top Navigation -->
+        <nav class="top-nav">
+            <div class="nav-left">
+                <div class="brand">
+                    <span class="brand-icon">🦅</span>
+                    <span class="brand-title">Woodpecker Chess</span>
+                </div>
+                <div class="book-picker-wrap">
+                    <span class="picker-icon">📚</span>
+                    <select id="book-select" title="Select Book"></select>
+                </div>
+            </div>
+            <div class="nav-right">
+                <select id="board-color-select" title="Board Color Scheme">
+                    <option value="brown">🟫 Brown</option>
+                    <option value="green">🟩 Green</option>
+                </select>
+                <button id="theme-toggle" title="Toggle Dark/Light Mode">🌙 Dark</button>
+                <button id="sound-toggle-btn" title="Toggle Sound Effects">🔊 Sound</button>
+                <button id="back-home-btn" title="Return to Home Menu">🏠 Home</button>
+            </div>
+        </nav>
+
+        <header class="app-header">
+            <h1 id="book-title" class="book-title">Woodpecker Method</h1>
+        </header>
+
+        <div class="container">
+            <div class="board-wrapper">
+                <div class="board-container">
+                    <div class="ranks-container" id="ranks">
+                        <span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span>
+                    </div>
+                    <div class="board" id="board">
+                        <!-- Squares generated by JS -->
+                    </div>
+                </div>
+                <div class="files-container" id="files">
+                    <span>a</span><span>b</span><span>c</span><span>d</span><span>e</span><span>f</span><span>g</span><span>h</span>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="puzzle-header-row">
+                    <div>
+                        <div class="puzzle-title" id="puzzle-number">Puzzle 1 / 1024</div>
+                        <div class="puzzle-submeta">
+                            <span id="puzzle-category"></span>
+                            <span id="book-mode-badge" class="badge"></span>
+                        </div>
+                    </div>
+                    <div id="turn-indicator" class="turn-indicator white">White to move</div>
+                </div>
+
+                <div class="timers-strip">
+                    <div class="timer-card">
+                        <span class="timer-label">Puzzle Time</span>
+                        <span id="puzzle-timer" class="timer-digits">00:00.0</span>
+                    </div>
+                    <div class="timer-card">
+                        <span class="timer-label">Cycle Time</span>
+                        <span id="session-timer" class="timer-digits">00:00:00</span>
+                    </div>
+                </div>
+
+                <div id="status-message" class="status-message">
+                    Ready to play
+                </div>
+
+                <div class="move-history-container">
+                    <div class="history-label">Move History</div>
+                    <div id="move-history" class="move-history"></div>
+                </div>
+
+                <div class="nav-buttons" id="study-controls">
+                    <button id="prev-btn" title="Previous Puzzle (← or P)">← Prev</button>
+                    <button id="show-solution-btn" title="Show Solution (S)">Solution</button>
+                    <button id="autoplay-btn" title="Toggle Auto-Play (Space)">Auto-Play ⏵</button>
+                    <button id="flip-btn" title="Flip Board (F)">⇅ Flip</button>
+                    <button id="next-btn" class="primary" title="Next Puzzle (→ or N)">Next →</button>
+                </div>
+
+                <div class="panel-utility-box">
+                    <div class="utility-row">
+                        <div class="cycle-indicator">
+                            <span class="cycle-label">Cycle</span>
+                            <span id="current-cycle" class="cycle-number">1</span>
+                        </div>
+                        <button id="resume-btn" class="btn-sm" title="Resume from first unsolved puzzle">Resume Unsolved</button>
+                        <div class="jump-group">
+                            <input type="number" id="jump-input" placeholder="#" min="1" title="Jump to puzzle number">
+                            <button id="jump-btn" class="btn-sm">Go</button>
+                        </div>
+                    </div>
+
+                    <div class="engine-row">
+                        <label class="engine-toggle-label" for="engine-toggle">
+                            <input type="checkbox" id="engine-toggle">
+                            <span>Play vs Engine (Stockfish)</span>
+                        </label>
+                        <span id="engine-status" class="engine-status-text"></span>
+                    </div>
+                </div>
+
+                <!-- Practice Mode Controls -->
+                <div id="practice-controls" class="nav-buttons" style="display: none; grid-template-columns: 1fr 1fr;">
+                    <button id="resign-btn" style="background: var(--danger); color: white; border: none;">Resign</button>
+                    <button id="draw-btn" style="background: var(--warning); color: white; border: none;">Offer Draw</button>
+                </div>
+            </div>
         </div>
-        <div class="controls-row">
-            <select id="board-color-select">
-                <option value="brown">Brown Board</option>
-                <option value="green">Green Board</option>
-            </select>
-            <button id="theme-toggle">🌙 Dark Mode</button>
-        </div>
-    </div>
 
-    <header>
-        <h1>Woodpecker Method</h1>
-    </header>
-
-    <div class="container">
-        <div class="board-wrapper">
-            <div class="board-container">
-                <div class="ranks-container" id="ranks">
-                    <span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span>
+        <div class="bottom-section">
+            <div class="progress-card">
+                <div class="progress-header">
+                    <span class="progress-title">Cycle Progress</span>
+                    <span id="progress-text" class="progress-counter">0 / 1024</span>
                 </div>
-                <div class="board" id="board">
-                    <!-- Squares generated by JS -->
-                </div>
-            </div>
-            <div class="files-container" id="files">
-                <span>a</span><span>b</span><span>c</span><span>d</span><span>e</span><span>f</span><span>g</span><span>h</span>
-            </div>
-        </div>
-
-        <div class="panel">
-            <div class="puzzle-header">
-                <span id="puzzle-number">Puzzle 1 / 1024</span>
-                <span id="turn-indicator" class="turn-indicator white">White to move</span>
-            </div>
-            <div style="text-align:center; font-size:12px; color:var(--text-muted); margin-bottom:4px;">
-                <span id="puzzle-category" style="font-style:italic;"></span>
-                &nbsp;<span id="book-mode-badge" style="background:var(--primary-color); color:white; border-radius:4px; padding:1px 6px; font-size:11px; font-style:normal;"></span>
-            </div>
-
-            <div class="timers">
-                <div class="timer-box">
-                    <span class="timer-label">Puzzle Time</span>
-                    <span id="puzzle-timer">00:00.0</span>
-                </div>
-                <div class="timer-box">
-                    <span class="timer-label">Cycle Time</span>
-                    <span id="session-timer">00:00:00</span>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="progress-fill"></div>
                 </div>
             </div>
 
-            <div id="status-message" class="status-message">
-                Ready to play
-            </div>
-
-            <div id="move-history" class="move-history"></div>
-
-            <div class="controls-row" style="justify-content: space-between;">
-                <span style="font-size: 14px; font-weight: bold;">Cycle: <span id="current-cycle">1</span></span>
-                <button id="resume-btn" class="primary">Resume Unsolved</button>
+            <div class="stats-grid">
+                <div class="stat-card stat-solved">
+                    <div class="stat-label">Solved (No Hints)</div>
+                    <div class="stat-value" id="stat-solved">0</div>
+                </div>
+                <div class="stat-card stat-hints">
+                    <div class="stat-label">Solved (Hint)</div>
+                    <div class="stat-value" id="stat-hints">0</div>
+                </div>
+                <div class="stat-card stat-failed">
+                    <div class="stat-label">Failed</div>
+                    <div class="stat-value" id="stat-failed">0</div>
+                </div>
+                <div class="stat-card stat-time">
+                    <div class="stat-label">Previous Cycle Time</div>
+                    <div class="stat-value" id="stat-prev-time">N/A</div>
+                </div>
             </div>
             
-            <div class="controls-row" style="margin-top: 10px;">
-                <input type="number" id="jump-input" placeholder="No." min="1">
-                <button id="jump-btn">Jump</button>
-            </div>
-            
-            <div class="controls-row" style="margin-top: 10px; justify-content: flex-start; gap: 10px;">
-                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; font-size: 13px;">
-                    <input type="checkbox" id="engine-toggle">
-                    Play vs Engine (Stockfish)
-                </label>
-                <div id="engine-status" style="font-size: 11px; color: var(--text-muted);"></div>
+            <div class="bottom-actions-row">
+                <button id="new-cycle-btn" class="success hidden">Start Next Cycle ⚡</button>
+                <button id="reset-all-btn" class="danger-outline">Reset Book Progress</button>
             </div>
 
-            <div class="nav-buttons" id="study-controls">
-                <button id="prev-btn">← Prev</button>
-                <button id="show-solution-btn">Show Solution</button>
-                <button id="autoplay-btn" title="Toggle Auto-Play" class="primary">Auto-Play ⏵</button>
-                <button id="flip-btn" title="Flip Board">⇅ Flip</button>
-                <button id="next-btn">Next →</button>
+            <div class="shortcuts-legend">
+                <span>⌨ <strong>Shortcuts:</strong></span>
+                <span><kbd>Space</kbd> Auto-Play</span>
+                <span><kbd>→</kbd> / <kbd>N</kbd> Next</span>
+                <span><kbd>←</kbd> / <kbd>P</kbd> Prev</span>
+                <span><kbd>F</kbd> Flip</span>
+                <span><kbd>R</kbd> Retry</span>
+                <span><kbd>S</kbd> Solution</span>
             </div>
 
-            <!-- Practice Mode Controls -->
-            <div id="practice-controls" class="nav-buttons" style="display: none;">
-                <button id="resign-btn" style="background: var(--danger); color: white; border-color: var(--danger);">Resign</button>
-                <button id="draw-btn" style="background: var(--warning); color: white; border-color: var(--warning);">Offer Draw</button>
-            </div>
         </div>
-    </div>
-
-    <div class="bottom-section">
-        <div class="progress-container">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 14px;">
-                <span style="font-weight: bold;">Cycle Progress</span>
-                <span id="progress-text">0 / 1024</span>
-            </div>
-            <div class="progress-bar-bg">
-                <div class="progress-bar-fill" id="progress-fill"></div>
-            </div>
-        </div>
-
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="timer-label">Solved (No Hints)</div>
-                <div class="stat-value" id="stat-solved" style="color: var(--success);">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="timer-label">Solved (Hint)</div>
-                <div class="stat-value" id="stat-hints" style="color: var(--warning);">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="timer-label">Failed</div>
-                <div class="stat-value" id="stat-failed" style="color: var(--danger);">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="timer-label">Previous Cycle Time</div>
-                <div class="stat-value" id="stat-prev-time" style="color: var(--text-main); font-size: 18px;">N/A</div>
-            </div>
-        </div>
-        
-        <div class="controls-row" style="justify-content: center; margin-bottom: 20px;">
-            <button id="new-cycle-btn" class="success hidden">Start Next Cycle</button>
-            <button id="reset-all-btn" style="color: var(--danger); border-color: var(--danger);">Reset All Progress</button>
-        </div>
-
-    </div>
     </div> <!-- END trainer-view -->
 
     <script>
@@ -1294,7 +1595,9 @@
 
         // Web Audio Synthesizer for Zero-Latency Chess Sound Effects
         let audioCtx = null;
+        let soundEnabled = typeof localStorage !== 'undefined' ? (localStorage.getItem('chess_sound_enabled') !== 'false') : true;
         function playChessSound(type) {
+            if (!soundEnabled) return;
             try {
                 if (!audioCtx) {
                     const AudioCtor = window.AudioContext || window.webkitAudioContext;
@@ -1477,7 +1780,21 @@
                 const next = current === 'dark' ? 'light' : 'dark';
                 document.body.setAttribute('data-theme', next);
                 localStorage.setItem('theme', next);
+                themeToggleBtn.textContent = next === 'dark' ? '☀️ Light' : '🌙 Dark';
             });
+            if (localStorage.getItem('theme') === 'dark') {
+                themeToggleBtn.textContent = '☀️ Light';
+            }
+
+            const soundToggleBtn = document.getElementById('sound-toggle-btn');
+            if (soundToggleBtn) {
+                soundToggleBtn.textContent = soundEnabled ? '🔊 Sound' : '🔇 Muted';
+                soundToggleBtn.addEventListener('click', () => {
+                    soundEnabled = !soundEnabled;
+                    localStorage.setItem('chess_sound_enabled', soundEnabled);
+                    soundToggleBtn.textContent = soundEnabled ? '🔊 Sound' : '🔇 Muted';
+                });
+            }
             
             boardColorSelect.addEventListener('change', (e) => {
                 document.body.setAttribute('data-board-color', e.target.value);
@@ -1490,7 +1807,7 @@
             document.getElementById('show-solution-btn').addEventListener('click', showSolution);
             document.getElementById('autoplay-btn').addEventListener('click', toggleAutoPlay);
             document.getElementById('flip-btn').addEventListener('click', () => { 
-                selectedSq = -1;
+                clearSelection();
                 dragSourceSq = -1;
                 isDragging = false;
                 boardFlipped = !boardFlipped; 
@@ -1713,6 +2030,13 @@
         let isDragging = false;
 
 
+        function clearSelection() {
+            selectedSq = -1;
+            document.querySelectorAll('.square').forEach(sq => {
+                sq.classList.remove('legal-move', 'capture', 'selected');
+            });
+        }
+
         function onBoardMouseDown(e) {
             if (!playerTurnToMove) return;
             const targetSq = getSquareFromEvent(e);
@@ -1720,16 +2044,25 @@
             const piece = engine.board[targetSq];
             if (selectedSq !== -1 && (!piece || piece.color !== engine.turn)) {
                 attemptMove(selectedSq, targetSq);
-                selectedSq = -1;
-                document.querySelectorAll('.square').forEach(el => el.classList.remove('legal-move', 'capture'));
+                clearSelection();
                 return;
             }
             if (piece && piece.color === engine.turn) {
+                if (selectedSq === targetSq && !isDragging) {
+                    clearSelection();
+                    return;
+                }
+                clearSelection();
+                selectedSq = targetSq;
                 dragSourceSq = targetSq;
                 isDragging = false;
+                const selSquareEl = document.querySelector(`.square[data-sq="${targetSq}"]`);
+                if (selSquareEl) selSquareEl.classList.add('selected');
                 const moves = engine.generateLegalMoves().filter(m => m.from === targetSq);
                 highlightLegalMoves(moves);
                 dragElement = pieceElements[dragSourceSq];
+            } else {
+                clearSelection();
             }
         }
 
@@ -1760,24 +2093,21 @@
                 if (targetSq !== -1 && targetSq !== dragSourceSq) {
                     const moved = attemptMove(dragSourceSq, targetSq);
                     if (!moved) dragElement.style.transform = getSquareTransform(dragSourceSq);
-                    document.querySelectorAll('.square').forEach(sq => sq.classList.remove('legal-move', 'capture'));
-                    selectedSq = -1;
+                    clearSelection();
                 } else {
                     dragElement.style.transform = getSquareTransform(dragSourceSq);
-                    if (targetSq === dragSourceSq) selectedSq = dragSourceSq;
-                    else {
-                        document.querySelectorAll('.square').forEach(sq => sq.classList.remove('legal-move', 'capture'));
-                        selectedSq = -1;
+                    if (targetSq === dragSourceSq) {
+                        selectedSq = dragSourceSq;
+                        const selEl = document.querySelector(`.square[data-sq="${selectedSq}"]`);
+                        if (selEl) selEl.classList.add('selected');
+                    } else {
+                        clearSelection();
                     }
                 }
             } else {
-                if (targetSq === dragSourceSq) {
-                    if (selectedSq === dragSourceSq) {
-                        selectedSq = -1;
-                        document.querySelectorAll('.square').forEach(sq => sq.classList.remove('legal-move', 'capture'));
-                    } else {
-                        selectedSq = dragSourceSq;
-                    }
+                if (selectedSq !== -1) {
+                    const selEl = document.querySelector(`.square[data-sq="${selectedSq}"]`);
+                    if (selEl) selEl.classList.add('selected');
                 }
             }
             dragSourceSq = -1;
@@ -1873,6 +2203,8 @@
                     playerTurnToMove = false;
                     playChessSound('correct');
                     setStatus(isGame ? '🏁 End of game!' : 'Correct! ✓', 'correct');
+                    const nextBtn = document.getElementById('next-btn');
+                    if (nextBtn) nextBtn.classList.add('primary');
                     const status = appState.puzzleStatuses[currentPuzzle.id];
                     if (status !== 'solved_with_hint' && status !== 'failed') appState.puzzleStatuses[currentPuzzle.id] = 'solved';
                     storage.saveState(appState, 'chess_woodpecker_state_' + currentBook);
@@ -1921,6 +2253,8 @@
                     playerTurnToMove = false;
                     playChessSound('correct');
                     setStatus("Correct! ✓", "correct");
+                    const nextBtn = document.getElementById('next-btn');
+                    if (nextBtn) nextBtn.classList.add('primary');
                     const status = appState.puzzleStatuses[currentPuzzle.id];
                     if (status !== 'solved_with_hint' && status !== 'failed') appState.puzzleStatuses[currentPuzzle.id] = 'solved';
                     storage.saveState(appState, 'chess_woodpecker_state_' + currentBook);
@@ -1952,6 +2286,7 @@
             moveIndex = 0;
             currentPuzzleTimeMs = 0;
             lastMoveSquares = [];
+            clearSelection();
             engine.loadFEN(currentPuzzle.fen);
 
             const isPosition = currentPuzzle.type === 'position' || currentPuzzle.solution.length === 0;
@@ -2291,12 +2626,18 @@
             backHomeBtn.classList.remove('hidden-view');
             
             // Re-render trainer UI
-            document.querySelector('.sidebar').style.display = 'flex';
-            document.querySelector('.bottom-section').style.display = 'flex';
-            document.querySelector('.timers').style.display = 'flex';
-            document.getElementById('study-controls').style.display = 'flex';
-            document.getElementById('practice-controls').style.display = 'none';
-            document.getElementById('jump-input').parentElement.style.display = 'flex';
+            const bpWrap = document.querySelector('.book-picker-wrap');
+            if (bpWrap) bpWrap.style.display = 'flex';
+            const bSection = document.querySelector('.bottom-section');
+            if (bSection) bSection.style.display = 'flex';
+            const tStrip = document.querySelector('.timers-strip');
+            if (tStrip) tStrip.style.display = 'grid';
+            const sControls = document.getElementById('study-controls');
+            if (sControls) sControls.style.display = 'grid';
+            const pControls = document.getElementById('practice-controls');
+            if (pControls) pControls.style.display = 'none';
+            const uBox = document.querySelector('.panel-utility-box');
+            if (uBox) uBox.style.display = 'flex';
             
             // Set first book if none selected
             if (!currentBook && window.CHESS_BOOKS_LIST && window.CHESS_BOOKS_LIST.length > 0) {
@@ -2314,12 +2655,18 @@
             backHomeBtn.classList.remove('hidden-view');
 
             // Hide trainer-specific UI elements
-            document.querySelector('.sidebar').style.display = 'none';
-            document.querySelector('.bottom-section').style.display = 'none';
-            document.querySelector('.timers').style.display = 'none';
-            document.getElementById('study-controls').style.display = 'none';
-            document.getElementById('practice-controls').style.display = 'flex';
-            document.getElementById('jump-input').parentElement.style.display = 'none';
+            const bpWrap = document.querySelector('.book-picker-wrap');
+            if (bpWrap) bpWrap.style.display = 'none';
+            const bSection = document.querySelector('.bottom-section');
+            if (bSection) bSection.style.display = 'none';
+            const tStrip = document.querySelector('.timers-strip');
+            if (tStrip) tStrip.style.display = 'none';
+            const sControls = document.getElementById('study-controls');
+            if (sControls) sControls.style.display = 'none';
+            const pControls = document.getElementById('practice-controls');
+            if (pControls) pControls.style.display = 'grid';
+            const uBox = document.querySelector('.panel-utility-box');
+            if (uBox) uBox.style.display = 'none';
 
             // Setup Practice Match
             const skill = parseInt(eloSlider.value);
