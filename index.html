@@ -251,6 +251,8 @@
         
         .piece {
             position: absolute;
+            top: 0;
+            left: 0;
             width: 12.5%;
             height: 12.5%;
             background-size: cover;
@@ -899,7 +901,7 @@
 
             getFEN() {
                 let fen = '';
-                for (let rank = 7; rank >= 0; rank--) {
+                for (let rank = 0; rank < 8; rank++) {
                     let emptyCount = 0;
                     for (let file = 0; file < 8; file++) {
                         const piece = this.board[rank * 8 + file];
@@ -911,7 +913,7 @@
                         }
                     }
                     if (emptyCount > 0) fen += emptyCount;
-                    if (rank > 0) fen += '/';
+                    if (rank < 7) fen += '/';
                 }
                 fen += ` ${this.turn} `;
                 let castling = '';
@@ -1290,6 +1292,61 @@
         let currentBook = '';
         let moveHistory = []; // {san, color}
 
+        // Web Audio Synthesizer for Zero-Latency Chess Sound Effects
+        let audioCtx = null;
+        function playChessSound(type) {
+            try {
+                if (!audioCtx) {
+                    const AudioCtor = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtor) audioCtx = new AudioCtor();
+                }
+                if (!audioCtx) return;
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'move') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(150, now);
+                    osc.frequency.exponentialRampToValueAtTime(35, now + 0.08);
+                    gain.gain.setValueAtTime(0.18, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } else if (type === 'capture') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(260, now);
+                    osc.frequency.exponentialRampToValueAtTime(50, now + 0.12);
+                    gain.gain.setValueAtTime(0.28, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+                    osc.start(now);
+                    osc.stop(now + 0.12);
+                } else if (type === 'correct') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, now);
+                    osc.frequency.setValueAtTime(659.25, now + 0.09);
+                    osc.frequency.setValueAtTime(783.99, now + 0.18);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
+                    osc.start(now);
+                    osc.stop(now + 0.42);
+                } else if (type === 'wrong') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(140, now);
+                    osc.frequency.exponentialRampToValueAtTime(70, now + 0.22);
+                    gain.gain.setValueAtTime(0.22, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+                    osc.start(now);
+                    osc.stop(now + 0.22);
+                }
+            } catch(e) {}
+        }
+
         function recordMove(san, color) {
             moveHistory.push({ san, color });
             renderMoveHistory();
@@ -1298,16 +1355,34 @@
         function renderMoveHistory() {
             const el = document.getElementById('move-history');
             if (!el) return;
+            if (moveHistory.length === 0) {
+                el.innerHTML = '';
+                return;
+            }
             let html = '';
-            for (let i = 0; i < moveHistory.length; i += 2) {
+            let moveNum = 1;
+            let i = 0;
+            if (moveHistory[0].color === 'b') {
+                const b = moveHistory[0];
+                const isLast = (moveHistory.length === 1);
+                html += `<div class="move-pair${isLast ? ' last-b' : ''}">` +
+                    `<span class="move-num">${moveNum}.</span>` +
+                    `<span class="move-w" style="opacity:0.35;">...</span>` +
+                    `<span class="move-b">${b.san}</span>` +
+                    '</div>';
+                moveNum++;
+                i = 1;
+            }
+            for (; i < moveHistory.length; i += 2) {
                 const w = moveHistory[i];
                 const b = moveHistory[i + 1];
                 const isLastPair = (i >= moveHistory.length - 2);
                 html += `<div class="move-pair${isLastPair ? (b ? ' last-b' : ' last-w') : ''}">` +
-                    `<span class="move-num">${Math.floor(i/2)+1}.</span>` +
+                    `<span class="move-num">${moveNum}.</span>` +
                     `<span class="move-w">${w.san}</span>` +
                     (b ? `<span class="move-b">${b.san}</span>` : '') +
                     '</div>';
+                moveNum++;
             }
             el.innerHTML = html;
             el.scrollTop = el.scrollHeight;
@@ -1414,7 +1489,13 @@
             document.getElementById('next-btn').addEventListener('click', () => loadPuzzleIndex(appState.currentPuzzleIndex + 1));
             document.getElementById('show-solution-btn').addEventListener('click', showSolution);
             document.getElementById('autoplay-btn').addEventListener('click', toggleAutoPlay);
-            document.getElementById('flip-btn').addEventListener('click', () => { boardFlipped = !boardFlipped; renderBoard(true); });
+            document.getElementById('flip-btn').addEventListener('click', () => { 
+                selectedSq = -1;
+                dragSourceSq = -1;
+                isDragging = false;
+                boardFlipped = !boardFlipped; 
+                renderBoard(true); 
+            });
             document.getElementById('resume-btn').addEventListener('click', resumeUnsolved);
             const jumpInput = document.getElementById('jump-input');
             const doJump = () => {
@@ -1483,7 +1564,14 @@
                 if (e.key === 'ArrowRight' || e.key === 'n') loadPuzzleIndex(appState.currentPuzzleIndex + 1);
                 else if (e.key === 'ArrowLeft' || e.key === 'p') loadPuzzleIndex(appState.currentPuzzleIndex - 1);
                 else if (e.key === ' ') { e.preventDefault(); toggleAutoPlay(); }
-                else if (e.key === 'f' || e.key === 'F') { boardFlipped = !boardFlipped; renderBoard(true); }
+                else if (e.key === 'f' || e.key === 'F') { 
+                    selectedSq = -1;
+                    dragSourceSq = -1;
+                    isDragging = false;
+                    boardFlipped = !boardFlipped; 
+                    renderBoard(true); 
+                }
+                else if (e.key === 'r' || e.key === 'R') loadPuzzleIndex(appState.currentPuzzleIndex);
                 else if (e.key === 's' || e.key === 'S') showSolution();
             });
 
@@ -1704,6 +1792,14 @@
                 const captured = pieceElements[toSq];
                 setTimeout(() => captured.remove(), 200);
             }
+            if (isCastling === 'ep') {
+                const capSq = pieceElements[toSq + 8] ? toSq + 8 : toSq - 8;
+                const captured = pieceElements[capSq];
+                if (captured) {
+                    setTimeout(() => captured.remove(), 200);
+                    delete pieceElements[capSq];
+                }
+            }
             pieceElements[toSq] = pDiv;
             delete pieceElements[fromSq];
             pDiv.dataset.sq = toSq;
@@ -1739,9 +1835,11 @@
             const isPosition = isEngineEnabled || isPracticeMode || (!currentPuzzle) || currentPuzzle.type === 'position' || currentPuzzle.solution.length === 0;
 
             if (isPosition) {
+                const isCapture = !!engine.board[moveObj.to] || moveObj.type === 'ep';
                 const san = engine.moveToSAN(moveObj);
                 animatePieceMove(moveObj.from, moveObj.to, moveObj.promotion, moveObj.type);
                 engine.makeMoveInternal(moveObj);
+                playChessSound(isCapture ? 'capture' : 'move');
                 recordMove(san, engine.turn === 'w' ? 'b' : 'w');
                 lastMoveSquares = [moveObj.from, moveObj.to];
                 renderBoard(false);
@@ -1762,6 +1860,7 @@
             const isGame = currentPuzzle.type === 'game' || currentPuzzle.type === 'repertoire';
 
             if (uciMove === expectedMove) {
+                const isCapture = !!engine.board[moveObj.to] || moveObj.type === 'ep';
                 const san = engine.moveToSAN(moveObj);
                 animatePieceMove(moveObj.from, moveObj.to, moveObj.promotion, moveObj.type);
                 engine.makeMoveInternal(moveObj);
@@ -1772,18 +1871,21 @@
                 moveIndex++;
                 if (moveIndex >= currentPuzzle.solution.length) {
                     playerTurnToMove = false;
+                    playChessSound('correct');
                     setStatus(isGame ? '🏁 End of game!' : 'Correct! ✓', 'correct');
                     const status = appState.puzzleStatuses[currentPuzzle.id];
                     if (status !== 'solved_with_hint' && status !== 'failed') appState.puzzleStatuses[currentPuzzle.id] = 'solved';
                     storage.saveState(appState, 'chess_woodpecker_state_' + currentBook);
                     updateStats();
                 } else {
+                    playChessSound(isCapture ? 'capture' : 'move');
                     playerTurnToMove = false;
                     setStatus(isGame ? 'Good! Opponent thinking...' : 'Correct! Opponent thinking...', '');
                     setTimeout(playOpponentMove, 500);
                 }
                 return true;
             } else {
+                playChessSound('wrong');
                 if (isGame) {
                     // In game mode: show the correct move instead of penalizing
                     flashBoard('wrong');
@@ -1805,8 +1907,10 @@
             const oppUci = currentPuzzle.solution[moveIndex];
             const moveObj = engine.moveFromUCI(oppUci);
             if (moveObj) {
+                const isCapture = !!engine.board[moveObj.to] || moveObj.type === 'ep';
                 const san = engine.moveToSAN(moveObj);
                 engine.makeMoveInternal(moveObj);
+                playChessSound(isCapture ? 'capture' : 'move');
                 recordMove(san, engine.turn === 'w' ? 'b' : 'w');
                 animatePieceMove(moveObj.from, moveObj.to, moveObj.promotion, moveObj.type);
                 lastMoveSquares = [moveObj.from, moveObj.to];
@@ -1815,6 +1919,7 @@
                 playerTurnToMove = true;
                 if (moveIndex >= currentPuzzle.solution.length) {
                     playerTurnToMove = false;
+                    playChessSound('correct');
                     setStatus("Correct! ✓", "correct");
                     const status = appState.puzzleStatuses[currentPuzzle.id];
                     if (status !== 'solved_with_hint' && status !== 'failed') appState.puzzleStatuses[currentPuzzle.id] = 'solved';
@@ -1954,8 +2059,10 @@
         function playEngineMove(uci) {
             const moveObj = engine.moveFromUCI(uci);
             if (moveObj) {
+                const isCapture = !!engine.board[moveObj.to] || moveObj.type === 'ep';
                 const san = engine.moveToSAN(moveObj);
                 engine.makeMoveInternal(moveObj);
+                playChessSound(isCapture ? 'capture' : 'move');
                 recordMove(san, engine.turn === 'w' ? 'b' : 'w');
                 animatePieceMove(moveObj.from, moveObj.to, moveObj.promotion, moveObj.type);
                 lastMoveSquares = [moveObj.from, moveObj.to];
@@ -2000,8 +2107,10 @@
                 const uci = currentPuzzle.solution[moveIndex];
                 const moveObj = engine.moveFromUCI(uci);
                 if (moveObj) {
+                    const isCapture = !!engine.board[moveObj.to] || moveObj.type === 'ep';
                     const san = engine.moveToSAN(moveObj);
                     engine.makeMoveInternal(moveObj);
+                    playChessSound(isCapture ? 'capture' : 'move');
                     recordMove(san, engine.turn === 'w' ? 'b' : 'w');
                     animatePieceMove(moveObj.from, moveObj.to, moveObj.promotion, moveObj.type);
                     lastMoveSquares = [moveObj.from, moveObj.to];
@@ -2044,8 +2153,10 @@
                     const uci = currentPuzzle.solution[tempIndex];
                     const m = engine.moveFromUCI(uci);
                     if (m) {
+                        const isCapture = !!engine.board[m.to] || m.type === 'ep';
                         const san = engine.moveToSAN(m);
                         engine.makeMoveInternal(m);
+                        playChessSound(isCapture ? 'capture' : 'move');
                         recordMove(san, engine.turn === 'w' ? 'b' : 'w');
                         animatePieceMove(m.from, m.to, m.promotion, m.type);
                         lastMoveSquares = [m.from, m.to];
@@ -2174,6 +2285,7 @@
 
         document.getElementById('mode-trainer').addEventListener('click', () => {
             isPracticeMode = false;
+            localStorage.setItem('chess_active_view', 'trainer');
             homeView.classList.add('hidden-view');
             trainerView.classList.remove('hidden-view');
             backHomeBtn.classList.remove('hidden-view');
@@ -2196,6 +2308,7 @@
 
         document.getElementById('mode-practice').addEventListener('click', () => {
             isPracticeMode = true;
+            localStorage.setItem('chess_active_view', 'practice');
             homeView.classList.add('hidden-view');
             trainerView.classList.remove('hidden-view');
             backHomeBtn.classList.remove('hidden-view');
@@ -2253,10 +2366,19 @@
         backHomeBtn.addEventListener('click', () => {
             if (isAutoPlaying) toggleAutoPlay();
             isPracticeMode = false;
+            localStorage.removeItem('chess_active_view');
             trainerView.classList.add('hidden-view');
             backHomeBtn.classList.add('hidden-view');
             homeView.classList.remove('hidden-view');
         });
+
+        // Restore view preference
+        const savedView = localStorage.getItem('chess_active_view');
+        if (savedView === 'trainer') {
+            document.getElementById('mode-trainer').click();
+        } else if (savedView === 'practice') {
+            document.getElementById('mode-practice').click();
+        }
 
     </script>
 </body>
