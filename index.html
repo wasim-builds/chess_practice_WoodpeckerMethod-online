@@ -2132,7 +2132,8 @@
             
             // Set first book if none selected
             if (!currentBook && window.CHESS_BOOKS_LIST && window.CHESS_BOOKS_LIST.length > 0) {
-                document.getElementById('book-select').value = window.CHESS_BOOKS_LIST[0].file;
+                const first = window.CHESS_BOOKS_LIST[0];
+                document.getElementById('book-select').value = typeof first === 'object' ? (first.key || first.file) : first;
                 document.getElementById('book-select').dispatchEvent(new Event('change'));
             }
         });
