@@ -1416,11 +1416,16 @@
             document.getElementById('autoplay-btn').addEventListener('click', toggleAutoPlay);
             document.getElementById('flip-btn').addEventListener('click', () => { boardFlipped = !boardFlipped; renderBoard(true); });
             document.getElementById('resume-btn').addEventListener('click', resumeUnsolved);
-            document.getElementById('jump-btn').addEventListener('click', () => {
-                const val = parseInt(document.getElementById('jump-input').value);
+            const jumpInput = document.getElementById('jump-input');
+            const doJump = () => {
+                const val = parseInt(jumpInput.value, 10);
                 if (val > 0 && val <= puzzles.length) {
                     loadPuzzleIndex(val - 1);
                 }
+            };
+            document.getElementById('jump-btn').addEventListener('click', doJump);
+            jumpInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') doJump();
             });
             document.getElementById('new-cycle-btn').addEventListener('click', startNewCycle);
             document.getElementById('reset-all-btn').addEventListener('click', resetProgress);
@@ -1778,11 +1783,21 @@
                 } else {
                     setStatus("Your turn.", "info");
                 }
+            } else {
+                console.error("Opponent move not found or illegal:", oppUci);
+                playerTurnToMove = true;
+                setStatus("Opponent move error: " + oppUci, "wrong");
             }
         }
 
+        let showSolutionTimeout = null;
+
         function loadPuzzleIndex(idx) {
             if (isAutoPlaying) toggleAutoPlay();
+            if (showSolutionTimeout) {
+                clearTimeout(showSolutionTimeout);
+                showSolutionTimeout = null;
+            }
             idx = parseInt(idx, 10);
             if (isNaN(idx) || idx < 0) idx = 0;
             if (idx >= puzzles.length) idx = puzzles.length - 1;
@@ -1973,6 +1988,10 @@
 
         function showSolution() {
             if (!currentPuzzle) return;
+            if (showSolutionTimeout) {
+                clearTimeout(showSolutionTimeout);
+                showSolutionTimeout = null;
+            }
             appState.puzzleStatuses[currentPuzzle.id] = 'solved_with_hint';
             storage.saveState(appState, 'chess_woodpecker_state_' + currentBook);
             updateStats();
@@ -1996,7 +2015,7 @@
                     }
                     renderBoard(false);
                     tempIndex++;
-                    setTimeout(playNextHintMove, 500);
+                    showSolutionTimeout = setTimeout(playNextHintMove, 500);
                 }
             };
             playNextHintMove();
