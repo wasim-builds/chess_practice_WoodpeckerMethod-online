@@ -1691,11 +1691,17 @@
         function attemptMove(fromSq, toSq) {
             if (!playerTurnToMove) return false;
             const legalMoves = engine.generateLegalMoves();
+            
+            // Underpromotion support matching expected puzzle move
+            const expectedMove = (currentPuzzle && currentPuzzle.solution) ? currentPuzzle.solution[moveIndex] : null;
+            const targetPromo = (expectedMove && expectedMove.length === 5) ? expectedMove[4] : 'q';
+
             let moveObj = legalMoves.find(m => m.from === fromSq && m.to === toSq && !m.promotion);
+            if (!moveObj) moveObj = legalMoves.find(m => m.from === fromSq && m.to === toSq && m.promotion === targetPromo);
             if (!moveObj) moveObj = legalMoves.find(m => m.from === fromSq && m.to === toSq && m.promotion === 'q');
             if (!moveObj) return false;
 
-            const isPosition = isPracticeMode || (!currentPuzzle) || currentPuzzle.type === 'position' || currentPuzzle.solution.length === 0;
+            const isPosition = isEngineEnabled || isPracticeMode || (!currentPuzzle) || currentPuzzle.type === 'position' || currentPuzzle.solution.length === 0;
 
             if (isPosition) {
                 const san = engine.moveToSAN(moveObj);
@@ -1707,12 +1713,12 @@
                 
                 if (isEngineEnabled && stockfishWorker) {
                     playerTurnToMove = false;
-                    setStatus(`Free play: ${san}. Engine thinking...`, 'info');
+                    setStatus(`Move: ${san}. Engine thinking...`, 'info');
                     stockfishWorker.postMessage('position fen ' + engine.getFEN());
                     // Use movetime instead of fixed depth so Skill Level has time to apply
                     stockfishWorker.postMessage('go movetime 1000');
                 } else {
-                    setStatus(`Free play: ${san}`, 'info');
+                    setStatus(`Move: ${san}`, 'info');
                 }
                 return true;
             }

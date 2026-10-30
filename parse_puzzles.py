@@ -173,8 +173,13 @@ for pgn_file in pgn_files:
 
                 moves_uci = []
                 try:
+                    b = chess.Board(fen)
                     for move in game.mainline_moves():
-                        moves_uci.append(move.uci())
+                        if move in b.legal_moves:
+                            b.push(move)
+                            moves_uci.append(move.uci())
+                        else:
+                            break
                 except Exception:
                     pass
 
